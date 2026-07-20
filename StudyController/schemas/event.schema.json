@@ -1,0 +1,360 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://collaborative-dr.local/schemas/event.schema.json",
+  "title": "Collaborative DR append-only event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "sequence",
+    "sessionId",
+    "trialId",
+    "stateVersion",
+    "recordedAtUtc",
+    "recordedAtMonotonicMs",
+    "source",
+    "eventType",
+    "correctsEventId",
+    "payload"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/schemaVersion"
+    },
+    "eventId": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/uuid"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "sessionId": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/uuid"
+    },
+    "trialId": {
+      "anyOf": [
+        {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "stateVersion": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "recordedAtUtc": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/timestampUtc"
+    },
+    "recordedAtMonotonicMs": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/monotonicMs"
+    },
+    "source": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/sender"
+    },
+    "eventType": {
+      "enum": [
+        "SESSION_CREATED",
+        "SESSION_CLOSED",
+        "STATE_TRANSITION",
+        "COMMAND_SENT",
+        "MESSAGE_RECEIVED",
+        "DEVICE_CONNECTED",
+        "DEVICE_DISCONNECTED",
+        "CALIBRATION_RECORDED",
+        "PREFLIGHT_CONFIRMED",
+        "TRIAL_PREPARED",
+        "TRIAL_COMMITTED",
+        "TRIAL_STARTED",
+        "SUBMISSION_RECORDED",
+        "STANDARDIZED_CONTINUE_GIVEN",
+        "TRIAL_STOPPED",
+        "TRIAL_OUTCOME_RECORDED",
+        "FAULT_RAISED",
+        "FAULT_CLEARED",
+        "SNAPSHOT_WRITTEN",
+        "EXPERIMENTER_ACTION",
+        "EVENT_CORRECTED"
+      ]
+    },
+    "correctsEventId": {
+      "anyOf": [
+        {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "STATE_TRANSITION"
+          }
+        },
+        "required": [
+          "eventType"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/stateTransitionPayload"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "TRIAL_STARTED"
+          }
+        },
+        "required": [
+          "eventType"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/trialStartedPayload"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "SUBMISSION_RECORDED"
+          }
+        },
+        "required": [
+          "eventType"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/submissionPayload"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "STANDARDIZED_CONTINUE_GIVEN"
+          }
+        },
+        "required": [
+          "eventType"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/continuePayload"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "TRIAL_STOPPED"
+          }
+        },
+        "required": [
+          "eventType"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/trialStoppedPayload"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "TRIAL_OUTCOME_RECORDED"
+          }
+        },
+        "required": [
+          "eventType"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/trialOutcomePayload"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "EVENT_CORRECTED"
+          }
+        },
+        "required": [
+          "eventType"
+        ]
+      },
+      "then": {
+        "properties": {
+          "correctsEventId": {
+            "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/uuid"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "correctsEventId": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "stateTransitionPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "to": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "trialStartedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "durationLimitMs"
+      ],
+      "properties": {
+        "durationLimitMs": {
+          "const": 420000
+        }
+      }
+    },
+    "submissionPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attemptNumber",
+        "elapsedMs",
+        "runtimeDecision"
+      ],
+      "properties": {
+        "attemptNumber": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "elapsedMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 420000
+        },
+        "runtimeDecision": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/runtimeDecision"
+        }
+      }
+    },
+    "continuePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attemptNumber"
+      ],
+      "properties": {
+        "attemptNumber": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "trialStoppedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome"
+      ],
+      "properties": {
+        "outcome": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialOutcome"
+        }
+      }
+    },
+    "trialOutcomePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome",
+        "submissionCount",
+        "liveFinalAccuracy",
+        "verifiedFinalAccuracy"
+      ],
+      "properties": {
+        "outcome": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialOutcome"
+        },
+        "submissionCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "liveFinalAccuracy": {
+          "anyOf": [
+            {
+              "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/accuracy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verifiedFinalAccuracy": {
+          "anyOf": [
+            {
+              "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/accuracy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://collaborative-dr.local/schemas/session-config.schema.json",
+  "title": "Collaborative DR session configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocolVersion",
+    "studyId",
+    "sessionId",
+    "pairId",
+    "createdAtUtc",
+    "trialDurationSeconds",
+    "asymmetricRecipient",
+    "deviceAssignments",
+    "calibrationPolicy",
+    "schedulePath",
+    "scheduleSha256"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/schemaVersion"
+    },
+    "protocolVersion": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/protocolVersion"
+    },
+    "studyId": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/studyId"
+    },
+    "sessionId": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/uuid"
+    },
+    "pairId": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/pairId"
+    },
+    "createdAtUtc": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/timestampUtc"
+    },
+    "trialDurationSeconds": {
+      "const": 420
+    },
+    "asymmetricRecipient": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/role"
+    },
+    "deviceAssignments": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "deviceId",
+          "role",
+          "accessTokenRef"
+        ],
+        "properties": {
+          "deviceId": {
+            "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/deviceId"
+          },
+          "role": {
+            "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/role"
+          },
+          "accessTokenRef": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._/-]{1,128}$"
+          }
+        }
+      }
+    },
+    "calibrationPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manualOverrideAllowed",
+        "thresholdProfile"
+      ],
+      "properties": {
+        "manualOverrideAllowed": {
+          "const": true
+        },
+        "thresholdProfile": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "schedulePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "scheduleSha256": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/sha256"
+    }
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "1.0.0",
+  "scheduleId": "EXAMPLE_P012_A",
+  "scheduleVersion": 1,
+  "generatedAtUtc": "2026-07-20T00:00:00.000Z",
+  "randomizationSeed": "EXAMPLE_ONLY_NOT_FOR_DATA_COLLECTION",
+  "trials": [
+    {
+      "trialId": "PRACTICE-01",
+      "kind": "PRACTICE",
+      "order": 1,
+      "blockIndex": null,
+      "condition": "NO_DR",
+      "distractorType": "KEYBOARD",
+      "puzzleId": "PRACTICE_EXAMPLE_01",
+      "replacementForTrialId": null,
+      "includeInAnalysis": false
+    },
+    {
+      "trialId": "SCORED-01",
+      "kind": "SCORED",
+      "order": 2,
+      "blockIndex": 1,
+      "condition": "NO_DR",
+      "distractorType": "TV",
+      "puzzleId": "PUZZLE_EXAMPLE_01",
+      "replacementForTrialId": null,
+      "includeInAnalysis": true
+    },
+    {
+      "trialId": "SCORED-02",
+      "kind": "SCORED",
+      "order": 3,
+      "blockIndex": 1,
+      "condition": "NO_DR",
+      "distractorType": "KEYBOARD",
+      "puzzleId": "PUZZLE_EXAMPLE_02",
+      "replacementForTrialId": null,
+      "includeInAnalysis": true
+    },
+    {
+      "trialId": "SCORED-03",
+      "kind": "SCORED",
+      "order": 4,
+      "blockIndex": 2,
+      "condition": "SYMMETRIC_DR",
+      "distractorType": "TV",
+      "puzzleId": "PUZZLE_EXAMPLE_03",
+      "replacementForTrialId": null,
+      "includeInAnalysis": true
+    },
+    {
+      "trialId": "SCORED-04",
+      "kind": "SCORED",
+      "order": 5,
+      "blockIndex": 2,
+      "condition": "SYMMETRIC_DR",
+      "distractorType": "KEYBOARD",
+      "puzzleId": "PUZZLE_EXAMPLE_04",
+      "replacementForTrialId": null,
+      "includeInAnalysis": true
+    },
+    {
+      "trialId": "SCORED-05",
+      "kind": "SCORED",
+      "order": 6,
+      "blockIndex": 3,
+      "condition": "ASYMMETRIC_DR",
+      "distractorType": "TV",
+      "puzzleId": "PUZZLE_EXAMPLE_05",
+      "replacementForTrialId": null,
+      "includeInAnalysis": true
+    },
+    {
+      "trialId": "SCORED-06",
+      "kind": "SCORED",
+      "order": 7,
+      "blockIndex": 3,
+      "condition": "ASYMMETRIC_DR",
+      "distractorType": "KEYBOARD",
+      "puzzleId": "PUZZLE_EXAMPLE_06",
+      "replacementForTrialId": null,
+      "includeInAnalysis": true
+    }
+  ]
+}

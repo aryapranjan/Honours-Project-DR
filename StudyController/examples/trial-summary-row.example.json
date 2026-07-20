@@ -1,0 +1,22 @@
+{
+  "study_id": "CDR",
+  "protocol_version": "1.0.0",
+  "session_id": "5d81618b-b713-4d67-8e81-b9096671b8b7",
+  "pair_id": "P012",
+  "trial_id": "SCORED-01",
+  "trial_kind": "SCORED",
+  "condition": "NO_DR",
+  "distractor_type": "TV",
+  "puzzle_id": "PUZZLE_EXAMPLE_01",
+  "outcome": "COMPLETED",
+  "started_at_utc": "2026-07-20T00:01:05.000Z",
+  "ended_at_utc": "2026-07-20T00:04:10.000Z",
+  "duration_ms": 185000,
+  "submission_count": 2,
+  "first_submission_ms": 120000,
+  "live_final_accuracy": "CORRECT",
+  "verified_final_accuracy": null,
+  "invalidation_reason": null,
+  "replacement_for_trial_id": null,
+  "include_in_analysis": true
+}

@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://collaborative-dr.local/schemas/trial-summary-row.schema.json",
+  "title": "Collaborative DR trial-summary.csv row",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "study_id",
+    "protocol_version",
+    "session_id",
+    "pair_id",
+    "trial_id",
+    "trial_kind",
+    "condition",
+    "distractor_type",
+    "puzzle_id",
+    "outcome",
+    "started_at_utc",
+    "ended_at_utc",
+    "duration_ms",
+    "submission_count",
+    "first_submission_ms",
+    "live_final_accuracy",
+    "verified_final_accuracy",
+    "invalidation_reason",
+    "replacement_for_trial_id",
+    "include_in_analysis"
+  ],
+  "properties": {
+    "study_id": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/studyId"
+    },
+    "protocol_version": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/protocolVersion"
+    },
+    "session_id": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/uuid"
+    },
+    "pair_id": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/pairId"
+    },
+    "trial_id": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialId"
+    },
+    "trial_kind": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialKind"
+    },
+    "condition": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/condition"
+    },
+    "distractor_type": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/distractorType"
+    },
+    "puzzle_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "outcome": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialOutcome"
+    },
+    "started_at_utc": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/timestampUtc"
+    },
+    "ended_at_utc": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/timestampUtc"
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 420000
+    },
+    "submission_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "first_submission_ms": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 420000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "live_final_accuracy": {
+      "anyOf": [
+        {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/accuracy"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "verified_final_accuracy": {
+      "anyOf": [
+        {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/accuracy"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "invalidation_reason": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "replacement_for_trial_id": {
+      "anyOf": [
+        {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "include_in_analysis": {
+      "type": "boolean"
+    }
+  }
+}

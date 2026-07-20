@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0.0",
+  "sessionId": "5d81618b-b713-4d67-8e81-b9096671b8b7",
+  "stateVersion": 7,
+  "lastEventSequence": 7,
+  "createdAtUtc": "2026-07-20T00:03:06.000Z",
+  "createdAtMonotonicMs": 187000,
+  "laptopState": "TRIAL_ACTIVE",
+  "activeTrialId": "SCORED-01",
+  "trialStartedAtUtc": "2026-07-20T00:01:05.000Z",
+  "trialStartedAtMonotonicMs": 66000,
+  "outcome": null,
+  "questStates": [
+    {
+      "deviceId": "QUEST_A",
+      "state": "TRIAL_ACTIVE",
+      "lastAppliedStateVersion": 7
+    },
+    {
+      "deviceId": "QUEST_B",
+      "state": "TRIAL_ACTIVE",
+      "lastAppliedStateVersion": 7
+    }
+  ]
+}

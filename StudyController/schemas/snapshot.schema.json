@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://collaborative-dr.local/schemas/snapshot.schema.json",
+  "title": "Collaborative DR recoverable session snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "sessionId",
+    "stateVersion",
+    "lastEventSequence",
+    "createdAtUtc",
+    "createdAtMonotonicMs",
+    "laptopState",
+    "activeTrialId",
+    "trialStartedAtUtc",
+    "trialStartedAtMonotonicMs",
+    "outcome",
+    "questStates"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/schemaVersion"
+    },
+    "sessionId": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/uuid"
+    },
+    "stateVersion": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "lastEventSequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "createdAtUtc": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/timestampUtc"
+    },
+    "createdAtMonotonicMs": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/monotonicMs"
+    },
+    "laptopState": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/laptopState"
+    },
+    "activeTrialId": {
+      "anyOf": [
+        {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "trialStartedAtUtc": {
+      "anyOf": [
+        {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/timestampUtc"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "trialStartedAtMonotonicMs": {
+      "anyOf": [
+        {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/monotonicMs"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "outcome": {
+      "anyOf": [
+        {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialOutcome"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "questStates": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "deviceId",
+          "state",
+          "lastAppliedStateVersion"
+        ],
+        "properties": {
+          "deviceId": {
+            "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/deviceId"
+          },
+          "state": {
+            "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/questState"
+          },
+          "lastAppliedStateVersion": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

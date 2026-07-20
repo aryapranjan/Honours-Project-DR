@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://collaborative-dr.local/schemas/common.schema.json",
+  "title": "Collaborative DR shared contract definitions",
+  "$defs": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "protocolVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "studyId": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_-]{1,31}$"
+    },
+    "pairId": {
+      "type": "string",
+      "pattern": "^P[0-9]{3,}$"
+    },
+    "deviceId": {
+      "type": "string",
+      "pattern": "^QUEST_[A-Z0-9_-]+$"
+    },
+    "trialId": {
+      "type": "string",
+      "pattern": "^(PRACTICE|SCORED|REPLACEMENT)-[0-9]{2,}$"
+    },
+    "timestampUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "monotonicMs": {
+      "type": "number",
+      "minimum": 0
+    },
+    "role": {
+      "enum": [
+        "DIRECTOR",
+        "BUILDER"
+      ]
+    },
+    "condition": {
+      "enum": [
+        "NO_DR",
+        "SYMMETRIC_DR",
+        "ASYMMETRIC_DR"
+      ]
+    },
+    "distractorType": {
+      "enum": [
+        "TV",
+        "KEYBOARD"
+      ]
+    },
+    "trialKind": {
+      "enum": [
+        "PRACTICE",
+        "SCORED",
+        "REPLACEMENT"
+      ]
+    },
+    "trialOutcome": {
+      "enum": [
+        "COMPLETED",
+        "TIMEOUT",
+        "TECHNICAL_INVALID",
+        "PROTOCOL_INVALID",
+        "PARTICIPANT_WITHDRAWAL",
+        "EXPERIMENTER_ABORTED"
+      ]
+    },
+    "accuracy": {
+      "enum": [
+        "CORRECT",
+        "INCORRECT",
+        "UNSCORABLE"
+      ]
+    },
+    "runtimeDecision": {
+      "enum": [
+        "CORRECT",
+        "INCORRECT"
+      ]
+    },
+    "calibrationStatus": {
+      "enum": [
+        "NOT_RUN",
+        "PASS",
+        "FAIL",
+        "OVERRIDDEN"
+      ]
+    },
+    "laptopState": {
+      "enum": [
+        "SERVER_READY",
+        "SESSION_SETUP",
+        "PREFLIGHT",
+        "CALIBRATION",
+        "BLOCKED",
+        "TRIAL_PREPARED",
+        "TRIAL_COMMITTED",
+        "TRIAL_ACTIVE",
+        "TRIAL_STOPPING",
+        "POST_TRIAL",
+        "CONDITION_REVIEW",
+        "SESSION_COMPLETE",
+        "RECOVERY_REQUIRED"
+      ]
+    },
+    "questState": {
+      "enum": [
+        "BOOTING",
+        "PERMISSION_REQUIRED",
+        "CONNECTING",
+        "SYNCHRONIZING",
+        "IDLE",
+        "CALIBRATING",
+        "READY",
+        "TRIAL_PREPARED",
+        "TRIAL_COMMITTED",
+        "TRIAL_ACTIVE",
+        "STOPPING",
+        "FAULTED",
+        "RECOVERING"
+      ]
+    },
+    "sender": {
+      "type": "string",
+      "pattern": "^(SERVER|DASHBOARD|QUEST_[A-Z0-9_-]+)$"
+    },
+    "target": {
+      "type": "string",
+      "pattern": "^(SERVER|DASHBOARD|ALL_QUESTS|QUEST_[A-Z0-9_-]+)$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

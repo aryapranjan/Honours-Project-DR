@@ -1,0 +1,25 @@
+{
+  "name": "collaborative-dr-study-controller",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Laptop-authoritative protocol contracts for the Collaborative DR study.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "check": "npm run typecheck && npm test",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

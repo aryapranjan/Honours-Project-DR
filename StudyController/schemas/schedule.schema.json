@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://collaborative-dr.local/schemas/schedule.schema.json",
+  "title": "Collaborative DR counterbalanced schedule",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "scheduleId",
+    "scheduleVersion",
+    "generatedAtUtc",
+    "randomizationSeed",
+    "trials"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/schemaVersion"
+    },
+    "scheduleId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9_-]{1,63}$"
+    },
+    "scheduleVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generatedAtUtc": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/timestampUtc"
+    },
+    "randomizationSeed": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "trials": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "$ref": "#/$defs/trialDefinition"
+      }
+    }
+  },
+  "$defs": {
+    "trialDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trialId",
+        "kind",
+        "order",
+        "blockIndex",
+        "condition",
+        "distractorType",
+        "puzzleId",
+        "replacementForTrialId",
+        "includeInAnalysis"
+      ],
+      "properties": {
+        "trialId": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialId"
+        },
+        "kind": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialKind"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "blockIndex": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "condition": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/condition"
+        },
+        "distractorType": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/distractorType"
+        },
+        "puzzleId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "replacementForTrialId": {
+          "anyOf": [
+            {
+              "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "includeInAnalysis": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "PRACTICE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "blockIndex": {
+                "type": "null"
+              },
+              "replacementForTrialId": {
+                "type": "null"
+              },
+              "includeInAnalysis": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "SCORED"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "blockIndex": {
+                "type": "integer"
+              },
+              "replacementForTrialId": {
+                "type": "null"
+              },
+              "includeInAnalysis": {
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "REPLACEMENT"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "blockIndex": {
+                "type": "integer"
+              },
+              "replacementForTrialId": {
+                "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialId"
+              },
+              "includeInAnalysis": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
