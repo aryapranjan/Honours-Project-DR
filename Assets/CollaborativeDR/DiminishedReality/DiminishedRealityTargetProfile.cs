@@ -9,12 +9,6 @@ namespace CollaborativeDR.DiminishedReality
         TvTagFrame
     }
 
-    public enum DiminishedRealityGeometryKind
-    {
-        FlatQuad,
-        OpenBottomBox
-    }
-
     [CreateAssetMenu(
         fileName = "DiminishedRealityTargetProfile",
         menuName = "Collaborative DR/Diminished Reality Target Profile")]
@@ -31,10 +25,7 @@ namespace CollaborativeDR.DiminishedReality
         [Header("Rig-relative placement")]
         [SerializeField] private Vector3 localPositionMeters;
         [SerializeField] private Vector3 localEulerDegrees;
-        [SerializeField] private Vector2 outerDimensionsMeters = new Vector2(0.31f, 0.115f);
-        [SerializeField] private DiminishedRealityGeometryKind geometryKind =
-            DiminishedRealityGeometryKind.FlatQuad;
-        [SerializeField, Min(0f)] private float coverHeightMeters;
+        [SerializeField] private Vector2 outerDimensionsMeters = new Vector2(0.55f, 0.35f);
 
         [Header("Replacement appearance")]
         [SerializeField] private Material replacementMaterial;
@@ -55,8 +46,6 @@ namespace CollaborativeDR.DiminishedReality
         public Vector3 LocalPositionMeters => localPositionMeters;
         public Quaternion LocalRotation => Quaternion.Euler(localEulerDegrees);
         public Vector2 OuterDimensionsMeters => outerDimensionsMeters;
-        public DiminishedRealityGeometryKind GeometryKind => geometryKind;
-        public float CoverHeightMeters => coverHeightMeters;
         public Material ReplacementMaterial => replacementMaterial;
         public Texture2D ReplacementTexture => replacementTexture;
         public float FeatherMeters => featherMeters;
@@ -76,10 +65,7 @@ namespace CollaborativeDR.DiminishedReality
             float configuredFeatherMeters,
             Material configuredMaterial,
             Color configuredTint,
-            int configuredPerformanceTargetFps = 72,
-            DiminishedRealityGeometryKind configuredGeometryKind =
-                DiminishedRealityGeometryKind.FlatQuad,
-            float configuredCoverHeightMeters = 0f)
+            int configuredPerformanceTargetFps = 72)
         {
             targetId = configuredTargetId?.Trim().ToUpperInvariant() ?? string.Empty;
             profileVersion = Phase6ProfileVersion;
@@ -87,8 +73,6 @@ namespace CollaborativeDR.DiminishedReality
             localPositionMeters = configuredLocalPositionMeters;
             localEulerDegrees = configuredLocalEulerDegrees;
             outerDimensionsMeters = configuredOuterDimensionsMeters;
-            geometryKind = configuredGeometryKind;
-            coverHeightMeters = configuredCoverHeightMeters;
             featherMeters = configuredFeatherMeters;
             replacementMaterial = configuredMaterial;
             replacementTexture = null;
@@ -128,18 +112,6 @@ namespace CollaborativeDR.DiminishedReality
             {
                 throw new InvalidOperationException(
                     $"{targetId} feather must remain inside the final outer mask edges.");
-            }
-            if (geometryKind == DiminishedRealityGeometryKind.OpenBottomBox &&
-                coverHeightMeters <= 0f)
-            {
-                throw new InvalidOperationException(
-                    $"{targetId} open-bottom cover height must be positive.");
-            }
-            if (geometryKind == DiminishedRealityGeometryKind.OpenBottomBox &&
-                featherMeters >= coverHeightMeters)
-            {
-                throw new InvalidOperationException(
-                    $"{targetId} feather must be smaller than its cover height.");
             }
             if (opacity < 0f || opacity > 1f)
             {

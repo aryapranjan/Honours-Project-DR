@@ -502,7 +502,7 @@ and clear-passthrough fail-safe behavior. Protocol `1.3.0` and build
 `cdr-phase6-dev-1` add a researcher preview that is disabled by default and
 unavailable during trials. Controller verification passes `41/41`; Unity
 The latest Phase 6 EditMode verification passes `21/21`, including the
-participant-right-only TV extension and runtime open-bottom keyboard cover.
+perspective-compensated recessed TV plane and enlarged keyboard desk plane.
 
 The software implementation does not close the physical exit gate. The white
 pilot masks must still be installed and inspected on the Quest for coverage,

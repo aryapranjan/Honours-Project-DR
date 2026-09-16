@@ -15,14 +15,12 @@ MonoBehaviour:
   targetId: KEYBOARD
   profileVersion: PHASE6_TEST_V1
   rigAnchor: 0
-  localPositionMeters: {x: 0, y: 0.0375, z: 0}
+  localPositionMeters: {x: 0, y: 0, z: 0}
   localEulerDegrees: {x: -90, y: 0, z: 0}
-  outerDimensionsMeters: {x: 0.31, y: 0.115}
-  geometryKind: 1
-  coverHeightMeters: 0.0375
+  outerDimensionsMeters: {x: 0.55, y: 0.35}
   replacementMaterial: {fileID: 2100000, guid: 5f77f04132e314a1d811185c827723fe, type: 2}
   replacementTexture: {fileID: 0}
-  featherMeters: 0.003
+  featherMeters: 0.005
   brightness: 1
   contrast: 1
   tint: {r: 1, g: 1, b: 1, a: 1}

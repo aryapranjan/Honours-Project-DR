@@ -439,28 +439,32 @@ foundation:
   calibrated mask manager, explicit Prepare/Show/Hide/Reveal behavior, debug
   bounds, actual-state reporting, a 72 FPS pilot report, and clear-passthrough
   fault handling. `NO_DR` creates no visible replacement geometry.
-- The current white TV mask is `1.18 x 1.075 m`, with its centre shifted
-  `0.025 m` toward the tag-5/tag-6 side so only the participant-right edge gains
-  `0.05 m`; it remains offset `-0.31 m` toward participants. The keyboard's
-  physical `0.29 x 0.095 m` footprint plus the approved 1 cm padding gives a
-  `0.31 x 0.115 m` open-bottom cover. Its top is centred `0.0375 m` above the
-  desk and four side faces extend down to the desk to hide the keyboard's
-  physical thickness from angled views. Feathering stays inside the TV/top
-  edges and at the keyboard skirt's desk contact.
+- The current pilot tests surface-aligned replacement planes. The TV is a
+  perspective-compensated `1.60 x 1.46 m` plane recessed `0.07 m` behind the
+  tag plane (`X=+0.034 m`, `Z=+0.07 m`), derived from a `0.29 m` panel
+  protrusion, approximately `1.30 m` wall viewing distance, and the observed
+  wall alignment. The keyboard is a single oversized `0.55 x 0.35 m` plane at
+  the calibrated desk surface (`Y=0 m`) to cover the raised-key silhouette at
+  oblique viewing angles; the previous box and vertical faces remain removed.
+  Both use `0.005 m` inside-edge feathering. The recessed placement is
+  experimental and requires a head-motion parallax check before it can be
+  locked.
 - The researcher preview is feature-gated by `DR_PREVIEW_ENABLED=true`, appears
   only during calibration, and is rejected during trials. It is omitted from
   the normal study server unless explicitly enabled for placement testing.
 - Unity Phase 6 configuration compiled and serialized successfully. The latest
   Unity EditMode result is `21/21` passed in
-  `Logs/Phase6FineTuningEditModeResults-20260902.xml`, including calibrated TV
-  composition, the participant-right-only extension, the runtime open-bottom
-  keyboard cover, and the `NO_DR` no-geometry invariant.
+  `Logs/Phase6OversizedKeyboardEditModeResults-20260902.xml`, including calibrated
+  TV composition, recessed-plane perspective compensation, the enlarged
+  runtime desk plane, and the `NO_DR` no-geometry invariant.
 - The fine-tuned `Builds/Android/CollaborativeDR-Phase6.apk` built at
-  `2026-09-02 14:08:38 +0930` (`77,701,790` bytes; SHA-256
-  `1d4e2982f22695f5f3685b6a52291548c0e3d4804ee51dc613dc9352fbc693da`).
-  It installed successfully and non-destructively through `hzdb` on Quest 3
-  `2G0YC1ZF9Z03HD`; existing app data was retained. A clean off-head cold launch
-  completed in `228 ms`, and the eight-second `hzdb` scan found no fatal
+  `2026-09-02 23:07:29 +0930` (`101,647,444` bytes; SHA-256
+  `f6301f2329834307da6c48c47c8ffb275c69f64fffd4fb682e60ec68be4dc55e`).
+  This recessed-plane revision is not yet installed because the post-build
+  `hzdb` device check returned no connected Quest. The preceding surface-plane
+  revision had installed non-destructively on Quest 3 `2G0YC1ZF9Z03HD`. Its
+  clean off-head cold launch completed in `228 ms`, and the eight-second `hzdb`
+  scan found no fatal
   exception, ANR, native crash, or package-attributable crash. The required
   headset-camera and Internet permissions are present and headset-camera access
   is granted. Meta Home resumes when the off-head wake interval ends, so on-head

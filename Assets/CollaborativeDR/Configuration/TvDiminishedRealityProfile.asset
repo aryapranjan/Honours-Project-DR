@@ -15,11 +15,9 @@ MonoBehaviour:
   targetId: TV
   profileVersion: PHASE6_TEST_V1
   rigAnchor: 1
-  localPositionMeters: {x: 0.025, y: 0, z: -0.31}
+  localPositionMeters: {x: 0.034, y: 0, z: 0.07}
   localEulerDegrees: {x: 0, y: 0, z: 0}
-  outerDimensionsMeters: {x: 1.18, y: 1.075}
-  geometryKind: 0
-  coverHeightMeters: 0
+  outerDimensionsMeters: {x: 1.6, y: 1.46}
   replacementMaterial: {fileID: 2100000, guid: 5f77f04132e314a1d811185c827723fe, type: 2}
   replacementTexture: {fileID: 0}
   featherMeters: 0.005

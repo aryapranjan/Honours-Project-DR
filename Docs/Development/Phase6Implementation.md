@@ -15,26 +15,28 @@ coordinates are hand-entered per headset.
 
 | Target | Rig anchor | Final outer mask | Local placement | Feather |
 | --- | --- | --- | --- | --- |
-| TV | centre and axes of TV tags 3–6 | `1.18 x 1.075 m` | `X=+0.025 m`, `Z=-0.31 m` toward participants | `0.005 m` inside edge |
-| Keyboard | keyboard rig from tags 1–2 | `0.31 x 0.115 x 0.0375 m` open-bottom cover | centred, top at `Y=0.0375 m`, horizontal | `0.003 m` inside top edge and desk-contact skirt |
+| TV | centre and axes of TV tags 3–6 | `1.60 x 1.46 m` experimental recessed wall plane | `X=+0.034 m`, `Z=+0.07 m` behind tag plane | `0.005 m` inside edge |
+| Keyboard | keyboard rig from tags 1–2 | `0.55 x 0.35 m` desk plane | centred, `Y=0 m`, horizontal | `0.005 m` inside edge |
 
-The TV pilot showed a small uncovered area on participant-right. Its original
-left edge is preserved while the tag-5/tag-6 side is extended by `0.05 m`; the
-corresponding `0.025 m` centre shift produces the new `1.18 m` width. The
-keyboard itself is `0.29 x 0.095 m`; the final cover includes the approved
-`0.01 m` footprint padding on every edge. It now has a top and four vertical
-faces extending down to the desk, rather than a single floating plane, so its
-`0.0375 m` physical thickness is covered from oblique viewing angles. Both masks
-currently use a full-opacity white unlit material. The profiles already accept
-a replacement texture, tint, brightness, contrast, opacity, and material, so
-photographed wall/desk content can be added later without changing the
-lifecycle or calibration code.
+The current geometry is an explicit physical-pilot experiment. The TV panel is
+approximately `0.29 m` in front of the wall and the seated viewing distance to
+the wall is approximately `1.30 m`. The mask is empirically recessed another
+`0.07 m` behind the tag plane to match the observed wall surface, so the current
+perspective factor is `1.37 / (1.30 - 0.29)`. This converts the previous
+`1.18 x 1.075 m` front-plane coverage to the rounded `1.60 x 1.46 m` plane and
+its `0.025 m` centre shift to `0.034 m`. This is expected to match only near the
+nominated viewing position and must be checked for head-motion parallax. The
+keyboard remains a single plane on the desk. Its oversized `0.55 x 0.35 m`
+footprint provides substantial coverage around the raised-key silhouette at
+oblique participant viewing angles without reintroducing box geometry. Both
+masks currently use a full-opacity white unlit material. The
+profiles already accept a replacement texture, tint, brightness, contrast,
+opacity, and material.
 
 ## Runtime behavior
 
-`DiminishedRealityManager` owns one lazy-created target mesh and applies the
-selected flat-quad or open-bottom-cover profile in the calibrated room frame.
-It implements:
+`DiminishedRealityManager` owns one lazy-created flat target mesh and applies
+the selected profile in the calibrated room frame. It implements:
 
 - `Prepare`: resolve and configure the target but keep it invisible;
 - `Show`: reveal it only after the authoritative trial start;
@@ -72,22 +74,24 @@ compatibility gate.
 - StudyController `npm run verify`: `41/41` tests passed; server and dashboard
   production builds passed.
 - Unity EditMode: `21/21` tests passed in
-  `Logs/Phase6FineTuningEditModeResults-20260902.xml`, including calibrated TV
-  composition, the participant-right-only extension, the runtime open-bottom
-  keyboard cover, and the `NO_DR` no-geometry invariant.
+  `Logs/Phase6OversizedKeyboardEditModeResults-20260902.xml`, including calibrated
+  TV composition, the recessed-plane perspective compensation, the enlarged
+  runtime desk plane, and the `NO_DR` no-geometry invariant.
 - Unity Phase 6 configuration compiled and serialized the profiles, material,
   manager, safety reference, and final study scene successfully.
 - The fine-tuned ARM64 Android development APK built at
-  `2026-09-02 14:08:38 +0930` as
-  `Builds/Android/CollaborativeDR-Phase6.apk` (`77,701,790` bytes; SHA-256
-  `1d4e2982f22695f5f3685b6a52291548c0e3d4804ee51dc613dc9352fbc693da`).
-  A non-destructive `hzdb app install --replace --grant-permissions` succeeded
-  on Quest 3 serial `2G0YC1ZF9Z03HD`, preserving existing app data. A clean
+  `2026-09-02 23:07:29 +0930` as
+  `Builds/Android/CollaborativeDR-Phase6.apk` (`101,647,444` bytes; SHA-256
+  `f6301f2329834307da6c48c47c8ffb275c69f64fffd4fb682e60ec68be4dc55e`).
+  Installation of this recessed-plane revision remains pending because the
+  subsequent `hzdb` device check returned no connected Quest. The immediately
+  preceding surface-plane revision was installed non-destructively on Quest 3
+  serial `2G0YC1ZF9Z03HD`, preserving app data. A clean
   off-head cold launch completed in `228 ms`; the eight-second `hzdb` crash scan
   found no fatal exception, ANR, native crash, or package-attributable crash.
   Headset-camera and Internet permissions are present, and headset-camera access
-  is granted. On-head focus and visual placement remain the next physical
-  checks.
+  is granted. The current APK must be installed before its on-head placement
+  test.
 
 ## Remaining physical exit gates
 

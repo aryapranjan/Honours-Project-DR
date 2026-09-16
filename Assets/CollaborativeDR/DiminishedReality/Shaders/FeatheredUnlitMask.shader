@@ -36,8 +36,6 @@ Shader "CollaborativeDR/FeatheredUnlitMask"
             {
                 float4 vertex : POSITION;
                 float2 uv : TEXCOORD0;
-                float2 featherMode : TEXCOORD1;
-                fixed4 color : COLOR;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -45,8 +43,6 @@ Shader "CollaborativeDR/FeatheredUnlitMask"
             {
                 float4 vertex : SV_POSITION;
                 float2 uv : TEXCOORD0;
-                float sideFeather : TEXCOORD1;
-                fixed vertexAlpha : COLOR;
                 UNITY_VERTEX_OUTPUT_STEREO
             };
 
@@ -66,8 +62,6 @@ Shader "CollaborativeDR/FeatheredUnlitMask"
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
                 output.vertex = UnityObjectToClipPos(input.vertex);
                 output.uv = TRANSFORM_TEX(input.uv, _MainTex);
-                output.sideFeather = input.featherMode.x;
-                output.vertexAlpha = input.color.a;
                 return output;
             }
 
@@ -85,12 +79,7 @@ Shader "CollaborativeDR/FeatheredUnlitMask"
                 float edgeAlphaY = _FeatherUv.y <= 0.000001
                     ? 1.0
                     : smoothstep(0.0, _FeatherUv.y, edgeDistance.y);
-                float topAlpha = min(edgeAlphaX, edgeAlphaY);
-                float geometryAlpha = lerp(
-                    topAlpha,
-                    input.vertexAlpha,
-                    saturate(input.sideFeather));
-                float alpha = geometryAlpha * _Opacity * _Tint.a;
+                float alpha = min(edgeAlphaX, edgeAlphaY) * _Opacity * _Tint.a;
                 return fixed4(colour, alpha);
             }
             ENDCG

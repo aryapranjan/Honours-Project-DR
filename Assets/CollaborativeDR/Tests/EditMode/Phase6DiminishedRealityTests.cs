@@ -13,9 +13,9 @@ namespace CollaborativeDR.Tests.EditMode
             DiminishedRealityTargetProfile profile = CreateProfile(
                 "TV",
                 DiminishedRealityRigAnchor.TvTagFrame,
-                new Vector3(0.025f, 0f, -0.31f),
+                new Vector3(0.034f, 0f, 0.07f),
                 Vector3.zero,
-                new Vector2(1.18f, 1.075f),
+                new Vector2(1.60f, 1.46f),
                 0.005f);
             try
             {
@@ -42,7 +42,7 @@ namespace CollaborativeDR.Tests.EditMode
                     new Vector3(1f, 0.5f, -2f),
                     Quaternion.Euler(0f, 90f, 0f));
                 Vector3 expected = keyboard.position + keyboard.rotation *
-                    new Vector3(0.025f, 1.2f, 1.69f);
+                    new Vector3(0.034f, 1.2f, 2.07f);
                 Assert.That(Vector3.Distance(pose.position, expected), Is.LessThan(0.00001f));
                 Assert.That(
                     Quaternion.Angle(pose.rotation, keyboard.rotation),
@@ -55,45 +55,41 @@ namespace CollaborativeDR.Tests.EditMode
         }
 
         [Test]
-        public void TvProfileExtendsOnlyParticipantRightEdge()
+        public void TvWallPlaneUsesApprovedPerspectiveCompensation()
         {
-            const float originalWidth = 1.13f;
-            const float extendedWidth = 1.18f;
-            const float centreShift = 0.025f;
+            const float recessedPlaneDistance = 1.37f;
+            const float tvProtrusion = 0.29f;
+            const float wallDistance = 1.30f;
+            const float frontPlaneWidth = 1.18f;
+            const float frontPlaneHeight = 1.075f;
+            const float frontPlaneCentreShift = 0.025f;
+            float scale = recessedPlaneDistance / (wallDistance - tvProtrusion);
 
-            float originalLeft = -originalWidth * 0.5f;
-            float originalRight = originalWidth * 0.5f;
-            float extendedLeft = centreShift - extendedWidth * 0.5f;
-            float extendedRight = centreShift + extendedWidth * 0.5f;
-
-            Assert.That(extendedLeft, Is.EqualTo(originalLeft).Within(0.000001f));
-            Assert.That(extendedRight - originalRight, Is.EqualTo(0.05f).Within(0.000001f));
+            Assert.That(1.60f, Is.EqualTo(frontPlaneWidth * scale).Within(0.005f));
+            Assert.That(1.46f, Is.EqualTo(frontPlaneHeight * scale).Within(0.005f));
+            Assert.That(0.034f,
+                Is.EqualTo(frontPlaneCentreShift * scale).Within(0.001f));
         }
 
         [Test]
-        public void KeyboardProfileIncludesApprovedCoveragePadding()
+        public void KeyboardProfileIsExpandedAndFlushWithDesk()
         {
             DiminishedRealityTargetProfile profile = CreateProfile(
                 "KEYBOARD",
                 DiminishedRealityRigAnchor.KeyboardRig,
-                new Vector3(0f, 0.0375f, 0f),
+                Vector3.zero,
                 new Vector3(-90f, 0f, 0f),
-                new Vector2(0.31f, 0.115f),
-                0.003f,
-                DiminishedRealityGeometryKind.OpenBottomBox,
-                0.0375f);
+                new Vector2(0.55f, 0.35f),
+                0.005f);
             try
             {
-                Assert.That(profile.OuterDimensionsMeters.x, Is.EqualTo(0.31f).Within(0.000001f));
-                Assert.That(profile.OuterDimensionsMeters.y, Is.EqualTo(0.115f).Within(0.000001f));
-                Assert.That(profile.LocalPositionMeters.y, Is.EqualTo(0.0375f).Within(0.000001f));
-                Assert.That(profile.GeometryKind,
-                    Is.EqualTo(DiminishedRealityGeometryKind.OpenBottomBox));
-                Assert.That(profile.CoverHeightMeters, Is.EqualTo(0.0375f).Within(0.000001f));
+                Assert.That(profile.OuterDimensionsMeters.x, Is.EqualTo(0.55f).Within(0.000001f));
+                Assert.That(profile.OuterDimensionsMeters.y, Is.EqualTo(0.35f).Within(0.000001f));
+                Assert.That(profile.LocalPositionMeters, Is.EqualTo(Vector3.zero));
                 Assert.That(
                     Quaternion.Angle(profile.LocalRotation, Quaternion.Euler(-90f, 0f, 0f)),
                     Is.LessThan(0.001f));
-                Assert.That(profile.FeatherMeters, Is.EqualTo(0.003f).Within(0.000001f));
+                Assert.That(profile.FeatherMeters, Is.EqualTo(0.005f).Within(0.000001f));
                 Assert.That(profile.PerformanceTargetFps, Is.EqualTo(72));
             }
             finally
@@ -103,9 +99,9 @@ namespace CollaborativeDR.Tests.EditMode
         }
 
         [Test]
-        public void KeyboardPrepareBuildsCoverFromTopDownToDesk()
+        public void KeyboardPrepareBuildsSingleDeskPlane()
         {
-            GameObject host = new GameObject("Phase 6 Keyboard Cover Test Host");
+            GameObject host = new GameObject("Phase 6 Keyboard Desk Plane Test Host");
             Shader shader = Shader.Find(DiminishedRealityManager.MaskShaderName);
             Assert.That(shader, Is.Not.Null, "The Phase 6 mask shader was not loaded.");
             Material material = new Material(shader);
@@ -114,22 +110,19 @@ namespace CollaborativeDR.Tests.EditMode
             profile.Configure(
                 "KEYBOARD",
                 DiminishedRealityRigAnchor.KeyboardRig,
-                new Vector3(0f, 0.0375f, 0f),
+                Vector3.zero,
                 new Vector3(-90f, 0f, 0f),
-                new Vector2(0.31f, 0.115f),
-                0.003f,
+                new Vector2(0.55f, 0.35f),
+                0.005f,
                 material,
-                Color.white,
-                72,
-                DiminishedRealityGeometryKind.OpenBottomBox,
-                0.0375f);
+                Color.white);
             try
             {
                 DiminishedRealityManager manager = host.AddComponent<DiminishedRealityManager>();
                 manager.Configure(new[] { profile });
                 CalibrationReportPayload report = new CalibrationReportPayload
                 {
-                    AttemptId = "CAL-KEYBOARD-COVER",
+                    AttemptId = "CAL-KEYBOARD-DESK-PLANE",
                     Status = "PASS",
                     KeyboardRigInWorld = PosePayload(Vector3.zero, Quaternion.identity)
                 };
@@ -145,11 +138,12 @@ namespace CollaborativeDR.Tests.EditMode
                 Assert.That(prepared, Is.True, reason);
                 MeshFilter filter = host.GetComponentInChildren<MeshFilter>(true);
                 Assert.That(filter, Is.Not.Null);
-                Assert.That(filter.sharedMesh.vertexCount, Is.EqualTo(36));
+                Assert.That(filter.sharedMesh.vertexCount, Is.EqualTo(4));
                 Assert.That(filter.sharedMesh.bounds.max.z, Is.EqualTo(0f).Within(0.000001f));
-                Assert.That(filter.sharedMesh.bounds.min.z, Is.EqualTo(-1f).Within(0.000001f));
-                Assert.That(filter.transform.localScale.z,
-                    Is.EqualTo(0.0375f).Within(0.000001f));
+                Assert.That(filter.sharedMesh.bounds.min.z, Is.EqualTo(0f).Within(0.000001f));
+                Assert.That(filter.transform.position.y, Is.EqualTo(0f).Within(0.000001f));
+                Assert.That(filter.transform.localScale.x, Is.EqualTo(0.55f).Within(0.000001f));
+                Assert.That(filter.transform.localScale.y, Is.EqualTo(0.35f).Within(0.000001f));
             }
             finally
             {
@@ -166,10 +160,10 @@ namespace CollaborativeDR.Tests.EditMode
             DiminishedRealityTargetProfile profile = CreateProfile(
                 "KEYBOARD",
                 DiminishedRealityRigAnchor.KeyboardRig,
-                new Vector3(0f, 0.0375f, 0f),
+                Vector3.zero,
                 new Vector3(-90f, 0f, 0f),
-                new Vector2(0.31f, 0.115f),
-                0.003f);
+                new Vector2(0.55f, 0.35f),
+                0.005f);
             try
             {
                 DiminishedRealityManager manager = host.AddComponent<DiminishedRealityManager>();
@@ -204,10 +198,7 @@ namespace CollaborativeDR.Tests.EditMode
             Vector3 localPosition,
             Vector3 localEuler,
             Vector2 outerDimensions,
-            float feather,
-            DiminishedRealityGeometryKind geometryKind =
-                DiminishedRealityGeometryKind.FlatQuad,
-            float coverHeightMeters = 0f)
+            float feather)
         {
             DiminishedRealityTargetProfile profile =
                 ScriptableObject.CreateInstance<DiminishedRealityTargetProfile>();
@@ -219,10 +210,7 @@ namespace CollaborativeDR.Tests.EditMode
                 outerDimensions,
                 feather,
                 null,
-                Color.white,
-                72,
-                geometryKind,
-                coverHeightMeters);
+                Color.white);
             return profile;
         }
 

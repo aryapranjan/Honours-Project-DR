@@ -17,14 +17,11 @@ namespace CollaborativeDR.DiminishedReality
         private readonly Dictionary<string, DiminishedRealityTargetProfile> profilesById =
             new Dictionary<string, DiminishedRealityTargetProfile>(StringComparer.Ordinal);
         private GameObject geometryRoot;
-        private MeshFilter maskFilter;
         private MeshRenderer maskRenderer;
         private GameObject debugRoot;
         private Material runtimeFallbackMaterial;
         private Material runtimeDebugMaterial;
         private Mesh runtimeQuadMesh;
-        private Mesh runtimeOpenBottomBoxMesh;
-        private float openBottomBoxFeatherFraction = -1f;
         private MaterialPropertyBlock propertyBlock;
         private DiminishedRealityTargetProfile activeProfile;
         private string requestedAction = "HIDE";
@@ -344,13 +341,10 @@ namespace CollaborativeDR.DiminishedReality
             geometryRoot.transform.SetPositionAndRotation(
                 worldPose.position,
                 worldPose.rotation);
-            maskFilter.sharedMesh = ResolveMaskMesh(profile);
             geometryRoot.transform.localScale = new Vector3(
                 profile.OuterDimensionsMeters.x,
                 profile.OuterDimensionsMeters.y,
-                profile.GeometryKind == DiminishedRealityGeometryKind.OpenBottomBox
-                    ? profile.CoverHeightMeters
-                    : 1f);
+                1f);
             geometryRoot.SetActive(true);
             maskRenderer.sharedMaterial = material;
             maskRenderer.enabled = false;
@@ -393,36 +387,15 @@ namespace CollaborativeDR.DiminishedReality
 
             geometryRoot = new GameObject("[DR] Replacement Mask");
             geometryRoot.transform.SetParent(transform, true);
-            maskFilter = geometryRoot.AddComponent<MeshFilter>();
+            MeshFilter filter = geometryRoot.AddComponent<MeshFilter>();
+            runtimeQuadMesh ??= CreateQuadMesh();
+            filter.sharedMesh = runtimeQuadMesh;
             maskRenderer = geometryRoot.AddComponent<MeshRenderer>();
             maskRenderer.shadowCastingMode = ShadowCastingMode.Off;
             maskRenderer.receiveShadows = false;
             maskRenderer.lightProbeUsage = LightProbeUsage.Off;
             maskRenderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
             maskRenderer.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
-        }
-
-        private Mesh ResolveMaskMesh(DiminishedRealityTargetProfile profile)
-        {
-            if (profile.GeometryKind == DiminishedRealityGeometryKind.FlatQuad)
-            {
-                runtimeQuadMesh ??= CreateQuadMesh();
-                return runtimeQuadMesh;
-            }
-
-            float featherFraction = Mathf.Clamp01(
-                profile.FeatherMeters / profile.CoverHeightMeters);
-            if (runtimeOpenBottomBoxMesh == null ||
-                !Mathf.Approximately(openBottomBoxFeatherFraction, featherFraction))
-            {
-                if (runtimeOpenBottomBoxMesh != null)
-                {
-                    DestroyRuntimeObject(runtimeOpenBottomBoxMesh);
-                }
-                runtimeOpenBottomBoxMesh = CreateOpenBottomBoxMesh(featherFraction);
-                openBottomBoxFeatherFraction = featherFraction;
-            }
-            return runtimeOpenBottomBoxMesh;
         }
 
         private void ConfigureDebugBounds(Color colour)
@@ -599,126 +572,11 @@ namespace CollaborativeDR.DiminishedReality
                     new Vector2(1f, 1f),
                     new Vector2(0f, 1f)
                 },
-                uv2 = new[]
-                {
-                    Vector2.zero,
-                    Vector2.zero,
-                    Vector2.zero,
-                    Vector2.zero
-                },
-                colors = new[]
-                {
-                    Color.white,
-                    Color.white,
-                    Color.white,
-                    Color.white
-                },
                 triangles = new[] { 0, 2, 1, 0, 3, 2 }
             };
             mesh.RecalculateBounds();
             mesh.UploadMeshData(true);
             return mesh;
-        }
-
-        private static Mesh CreateOpenBottomBoxMesh(float bottomFeatherFraction)
-        {
-            var vertices = new List<Vector3>();
-            var uvs = new List<Vector2>();
-            var uv2 = new List<Vector2>();
-            var colours = new List<Color>();
-            var triangles = new List<int>();
-
-            AddQuad(
-                new Vector3(-0.5f, -0.5f, 0f),
-                new Vector3(0.5f, -0.5f, 0f),
-                new Vector3(0.5f, 0.5f, 0f),
-                new Vector3(-0.5f, 0.5f, 0f),
-                1f, 1f, 1f, 1f,
-                false,
-                0f,
-                1f);
-
-            float ringZ = -1f + Mathf.Clamp(bottomFeatherFraction, 0.001f, 0.999f);
-            AddSide(new Vector2(-0.5f, -0.5f), new Vector2(0.5f, -0.5f));
-            AddSide(new Vector2(0.5f, -0.5f), new Vector2(0.5f, 0.5f));
-            AddSide(new Vector2(0.5f, 0.5f), new Vector2(-0.5f, 0.5f));
-            AddSide(new Vector2(-0.5f, 0.5f), new Vector2(-0.5f, -0.5f));
-
-            Mesh mesh = new Mesh
-            {
-                name = "[Runtime] Phase 6 Open-Bottom Unit Box",
-                hideFlags = HideFlags.DontSave
-            };
-            mesh.SetVertices(vertices);
-            mesh.SetUVs(0, uvs);
-            mesh.SetUVs(1, uv2);
-            mesh.SetColors(colours);
-            mesh.SetTriangles(triangles, 0);
-            mesh.RecalculateBounds();
-            mesh.UploadMeshData(true);
-            return mesh;
-
-            void AddSide(Vector2 edgeA, Vector2 edgeB)
-            {
-                Vector3 bottomA = new Vector3(edgeA.x, edgeA.y, -1f);
-                Vector3 bottomB = new Vector3(edgeB.x, edgeB.y, -1f);
-                Vector3 ringA = new Vector3(edgeA.x, edgeA.y, ringZ);
-                Vector3 ringB = new Vector3(edgeB.x, edgeB.y, ringZ);
-                Vector3 topA = new Vector3(edgeA.x, edgeA.y, 0f);
-                Vector3 topB = new Vector3(edgeB.x, edgeB.y, 0f);
-
-                AddQuad(
-                    bottomA, bottomB, ringB, ringA,
-                    0f, 0f, 1f, 1f,
-                    true,
-                    0f,
-                    bottomFeatherFraction);
-                AddQuad(
-                    ringA, ringB, topB, topA,
-                    1f, 1f, 1f, 1f,
-                    true,
-                    bottomFeatherFraction,
-                    1f);
-            }
-
-            void AddQuad(
-                Vector3 bottomLeft,
-                Vector3 bottomRight,
-                Vector3 topRight,
-                Vector3 topLeft,
-                float bottomLeftAlpha,
-                float bottomRightAlpha,
-                float topRightAlpha,
-                float topLeftAlpha,
-                bool sideFace,
-                float minimumV,
-                float maximumV)
-            {
-                int start = vertices.Count;
-                vertices.Add(bottomLeft);
-                vertices.Add(bottomRight);
-                vertices.Add(topRight);
-                vertices.Add(topLeft);
-                uvs.Add(new Vector2(0f, minimumV));
-                uvs.Add(new Vector2(1f, minimumV));
-                uvs.Add(new Vector2(1f, maximumV));
-                uvs.Add(new Vector2(0f, maximumV));
-                Vector2 mode = sideFace ? Vector2.right : Vector2.zero;
-                uv2.Add(mode);
-                uv2.Add(mode);
-                uv2.Add(mode);
-                uv2.Add(mode);
-                colours.Add(new Color(1f, 1f, 1f, bottomLeftAlpha));
-                colours.Add(new Color(1f, 1f, 1f, bottomRightAlpha));
-                colours.Add(new Color(1f, 1f, 1f, topRightAlpha));
-                colours.Add(new Color(1f, 1f, 1f, topLeftAlpha));
-                triangles.Add(start);
-                triangles.Add(start + 2);
-                triangles.Add(start + 1);
-                triangles.Add(start);
-                triangles.Add(start + 3);
-                triangles.Add(start + 2);
-            }
         }
 
         private void OnDestroy()
@@ -734,10 +592,6 @@ namespace CollaborativeDR.DiminishedReality
             if (runtimeQuadMesh != null)
             {
                 DestroyRuntimeObject(runtimeQuadMesh);
-            }
-            if (runtimeOpenBottomBoxMesh != null)
-            {
-                DestroyRuntimeObject(runtimeOpenBottomBoxMesh);
             }
         }
 

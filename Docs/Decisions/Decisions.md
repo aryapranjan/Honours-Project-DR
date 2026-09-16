@@ -134,17 +134,17 @@ defaults and unresolved deployment choices.
 - The pilot appearance is a full-opacity white, unlit, texture-ready mask. No
   dynamic Quest-camera texture capture is used. Photographed wall/desk
   materials will be added and locked after the physical visual pilot.
-- The TV pilot mask is `1.18 x 1.075 m`. Its participant-left edge remains at
-  the originally approved position, while its tag-5/tag-6 edge is extended by
-  `0.05 m`; therefore its local centre is `X=+0.025 m`. Its plane is `0.31 m`
-  toward participants from the tag plane, which is local `Z=-0.31 m` in the
-  locked room frame. The `0.005 m` feather is inside the final outer edge.
-- The keyboard physical footprint is `0.29 x 0.095 m`. Approved `0.01 m`
-  coverage padding on every edge gives a `0.31 x 0.115 m` footprint. The mask
-  is an open-bottom cover with a horizontal top at `0.0375 m` and four side
-  faces extending to the desk, which hides the keyboard's physical thickness
-  from oblique views. The `0.003 m` feather is inside the top edge and at the
-  side faces' desk contact.
+- The current TV pilot intentionally tests a recessed wall replacement plane.
+  The panel-to-wall depth is `0.29 m`, the approximate viewing distance to the
+  wall is `1.30 m`, and visual tuning places the plane another `0.07 m` behind
+  the tag plane. The provisional perspective factor is therefore
+  `1.37 / (1.30 - 0.29)`. The rounded mask is `1.60 x 1.46 m`, at local
+  `X=+0.034 m`, `Z=+0.07 m`. This remains experimental because participant head
+  movement may expose parallax. The `0.005 m` feather is inside the edge.
+- The keyboard pilot uses one oversized horizontal `0.55 x 0.35 m` plane at the
+  calibrated desk surface (`Y=0 m`). Its larger footprint covers the raised-key
+  silhouette seen from oblique angles. No box or vertical faces remain. The
+  `0.005 m` feather is inside the outer edge.
 - Prepare resolves the target but keeps it invisible; Show occurs only with
   the authoritative trial start; Hide occurs at trial end or fault; Reveal is
   researcher-only before a trial. `NO_DR` has no visible replacement geometry.

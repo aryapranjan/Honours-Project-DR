@@ -63,11 +63,12 @@ namespace CollaborativeDR.Editor
             tv.Configure(
                 "TV",
                 DiminishedRealityRigAnchor.TvTagFrame,
-                // Extend only the participant-right edge (tag 5/6 side) by
-                // 0.05 m. The 0.025 m centre shift preserves the left edge.
-                new Vector3(0.025f, 0f, -0.31f),
+                // Experimental recessed wall-plane placement. At an
+                // approximately 1.30 m wall viewing distance, placing the mask
+                // another 0.07 m back requires 1.37 / 1.01 compensation.
+                new Vector3(0.034f, 0f, 0.07f),
                 Vector3.zero,
-                new Vector2(1.18f, 1.075f),
+                new Vector2(1.60f, 1.46f),
                 0.005f,
                 material,
                 Color.white);
@@ -77,18 +78,15 @@ namespace CollaborativeDR.Editor
             keyboard.Configure(
                 "KEYBOARD",
                 DiminishedRealityRigAnchor.KeyboardRig,
-                new Vector3(0f, 0.0375f, 0f),
+                new Vector3(0f, 0f, 0f),
                 new Vector3(-90f, 0f, 0f),
-                // Physical keyboard footprint is 0.29 x 0.095 m. The approved
-                // 0.01 m coverage padding on each edge makes this the final
-                // outer mask size; feathering remains inside these edges.
-                new Vector2(0.31f, 0.115f),
-                0.003f,
+                // The oversized desk-flush plane covers the keyboard's
+                // projected silhouette when viewed from oblique participant
+                // angles, without reintroducing visible box geometry.
+                new Vector2(0.55f, 0.35f),
+                0.005f,
                 material,
-                Color.white,
-                72,
-                DiminishedRealityGeometryKind.OpenBottomBox,
-                0.0375f);
+                Color.white);
 
             GameObject runtime = scene.GetRootGameObjects()
                 .FirstOrDefault(root => root.name == RuntimeObjectName);
@@ -188,21 +186,18 @@ namespace CollaborativeDR.Editor
 
             Require(tv.TargetId == "TV" &&
                     tv.RigAnchor == DiminishedRealityRigAnchor.TvTagFrame &&
-                    tv.GeometryKind == DiminishedRealityGeometryKind.FlatQuad &&
-                    Approximately(tv.OuterDimensionsMeters, new Vector2(1.18f, 1.075f)) &&
-                    Approximately(tv.LocalPositionMeters, new Vector3(0.025f, 0f, -0.31f)) &&
+                    Approximately(tv.OuterDimensionsMeters, new Vector2(1.60f, 1.46f)) &&
+                    Approximately(tv.LocalPositionMeters, new Vector3(0.034f, 0f, 0.07f)) &&
                     Mathf.Approximately(tv.FeatherMeters, 0.005f),
                 "The TV profile no longer matches the locked Phase 6 placement values.");
             Require(keyboard.TargetId == "KEYBOARD" &&
                     keyboard.RigAnchor == DiminishedRealityRigAnchor.KeyboardRig &&
-                    keyboard.GeometryKind == DiminishedRealityGeometryKind.OpenBottomBox &&
-                    Approximately(keyboard.OuterDimensionsMeters, new Vector2(0.31f, 0.115f)) &&
-                    Approximately(keyboard.LocalPositionMeters, new Vector3(0f, 0.0375f, 0f)) &&
-                    Mathf.Approximately(keyboard.CoverHeightMeters, 0.0375f) &&
+                    Approximately(keyboard.OuterDimensionsMeters, new Vector2(0.55f, 0.35f)) &&
+                    Approximately(keyboard.LocalPositionMeters, Vector3.zero) &&
                     Quaternion.Angle(
                         keyboard.LocalRotation,
                         Quaternion.Euler(-90f, 0f, 0f)) < 0.01f &&
-                    Mathf.Approximately(keyboard.FeatherMeters, 0.003f),
+                    Mathf.Approximately(keyboard.FeatherMeters, 0.005f),
                 "The keyboard profile no longer matches the locked Phase 6 placement values.");
 
             Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
