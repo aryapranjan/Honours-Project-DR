@@ -3,12 +3,14 @@ UserSettings/
 Library/
 Logs/
 obj/
+.DS_Store
 Build/
 Builds/
 .vs/
 .vsconfig
 *.csproj
 *.sln
+*.slnx
 /.utmp
 *.zip
 *.apk
@@ -18,4 +20,3 @@ ProjectSettings\Packages\com.unity.testtools.codecoverage\Settings.json
 PerformanceTestRun*.*
 StreamingAssets*
 buildInfo.txt
-Packages/packages-lock.json

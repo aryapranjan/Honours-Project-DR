@@ -1,0 +1,16 @@
+{
+  "name": "CollaborativeDR.Protocol",
+  "rootNamespace": "CollaborativeDR.Protocol",
+  "references": [
+    "CollaborativeDR.StudyCore"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

@@ -55,6 +55,8 @@
     },
     "type": {
       "enum": [
+        "BEGIN_CALIBRATION",
+        "CALIBRATION_REPORT",
         "PREPARE_TRIAL",
         "READY",
         "COMMIT_START",
@@ -64,7 +66,17 @@
         "STOPPED",
         "FAULT",
         "HEARTBEAT",
-        "STATE_SNAPSHOT"
+        "HEARTBEAT_ACK",
+        "STATE_SNAPSHOT",
+        "STATE_SNAPSHOT_APPLIED",
+        "CONTINUE_AFTER_RECOVERY",
+        "CONTINUED",
+        "REQUEST_LOCAL_LOG_STATUS",
+        "LOCAL_LOG_STATUS",
+        "CLEANUP_LOCAL_LOG",
+        "LOCAL_LOG_CLEANED",
+        "DR_PREVIEW",
+        "DR_STATE_REPORT"
       ]
     },
     "payload": {
@@ -74,6 +86,26 @@
   "allOf": [
     {
       "oneOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "BEGIN_CALIBRATION"
+            },
+            "payload": {
+              "$ref": "#/$defs/beginCalibrationPayload"
+            }
+          }
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "CALIBRATION_REPORT"
+            },
+            "payload": {
+              "$ref": "#/$defs/calibrationReportPayload"
+            }
+          }
+        },
         {
           "properties": {
             "type": {
@@ -167,10 +199,110 @@
         {
           "properties": {
             "type": {
+              "const": "HEARTBEAT_ACK"
+            },
+            "payload": {
+              "$ref": "#/$defs/heartbeatAckPayload"
+            }
+          }
+        },
+        {
+          "properties": {
+            "type": {
               "const": "STATE_SNAPSHOT"
             },
             "payload": {
               "$ref": "#/$defs/stateSnapshotPayload"
+            }
+          }
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "STATE_SNAPSHOT_APPLIED"
+            },
+            "payload": {
+              "$ref": "#/$defs/snapshotAppliedPayload"
+            }
+          }
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "CONTINUE_AFTER_RECOVERY"
+            },
+            "payload": {
+              "$ref": "#/$defs/continueAfterRecoveryPayload"
+            }
+          }
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "CONTINUED"
+            },
+            "payload": {
+              "$ref": "#/$defs/snapshotAppliedPayload"
+            }
+          }
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "REQUEST_LOCAL_LOG_STATUS"
+            },
+            "payload": {
+              "$ref": "#/$defs/sessionReferencePayload"
+            }
+          }
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "LOCAL_LOG_STATUS"
+            },
+            "payload": {
+              "$ref": "#/$defs/localLogStatusPayload"
+            }
+          }
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "CLEANUP_LOCAL_LOG"
+            },
+            "payload": {
+              "$ref": "#/$defs/cleanupLocalLogPayload"
+            }
+          }
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "LOCAL_LOG_CLEANED"
+            },
+            "payload": {
+              "$ref": "#/$defs/localLogCleanedPayload"
+            }
+          }
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "DR_PREVIEW"
+            },
+            "payload": {
+              "$ref": "#/$defs/drPreviewPayload"
+            }
+          }
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "DR_STATE_REPORT"
+            },
+            "payload": {
+              "$ref": "#/$defs/drStateReport"
             }
           }
         }
@@ -178,6 +310,292 @@
     }
   ],
   "$defs": {
+    "beginCalibrationPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attemptId",
+        "durationMs",
+        "tagFamily",
+        "tagSizeMeters",
+        "requiredTagIds",
+        "minimumVisibleTvTags",
+        "thresholdProfile"
+      ],
+      "properties": {
+        "attemptId": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/uuid"
+        },
+        "durationMs": {
+          "const": 6000
+        },
+        "tagFamily": {
+          "const": "tagStandard41h12"
+        },
+        "tagSizeMeters": {
+          "const": 0.0567
+        },
+        "requiredTagIds": {
+          "type": "array",
+          "prefixItems": [
+            { "const": 1 },
+            { "const": 2 },
+            { "const": 3 },
+            { "const": 4 },
+            { "const": 5 },
+            { "const": 6 }
+          ],
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "minimumVisibleTvTags": {
+          "const": 3
+        },
+        "thresholdProfile": {
+          "const": "PROVISIONAL_PHASE5_V2"
+        }
+      }
+    },
+    "calibrationReportPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attemptId",
+        "status",
+        "startedAtUtc",
+        "completedAtUtc",
+        "durationMs",
+        "tagFamily",
+        "tagSizeMeters",
+        "thresholdProfile",
+        "cameraPosition",
+        "imageWidth",
+        "imageHeight",
+        "observedTagIds",
+        "tagSamples",
+        "acceptedObservationCount",
+        "rejectedObservationCount",
+        "keyboardSpacingMeters",
+        "keyboardSpacingResidualMeters",
+        "tvPlanarityRmsMeters",
+        "keyboardRigInWorld",
+        "tvInKeyboardRig",
+        "tagTransforms",
+        "failureReasons",
+        "warnings",
+        "rawFramesPersisted",
+        "simulation"
+      ],
+      "properties": {
+        "attemptId": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/uuid"
+        },
+        "status": {
+          "enum": ["PASS", "FAIL"]
+        },
+        "startedAtUtc": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/timestampUtc"
+        },
+        "completedAtUtc": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/timestampUtc"
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 5000,
+          "maximum": 10000
+        },
+        "tagFamily": {
+          "const": "tagStandard41h12"
+        },
+        "tagSizeMeters": {
+          "const": 0.0567
+        },
+        "thresholdProfile": {
+          "const": "PROVISIONAL_PHASE5_V2"
+        },
+        "cameraPosition": {
+          "enum": ["LEFT", "RIGHT", "UNKNOWN"]
+        },
+        "imageWidth": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8192
+        },
+        "imageHeight": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8192
+        },
+        "observedTagIds": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "uniqueItems": true,
+          "maxItems": 6
+        },
+        "tagSamples": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/calibrationTagSample"
+          },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "acceptedObservationCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rejectedObservationCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "keyboardSpacingMeters": {
+          "$ref": "#/$defs/nullableNonNegativeNumber"
+        },
+        "keyboardSpacingResidualMeters": {
+          "$ref": "#/$defs/nullableNonNegativeNumber"
+        },
+        "tvPlanarityRmsMeters": {
+          "$ref": "#/$defs/nullableNonNegativeNumber"
+        },
+        "keyboardRigInWorld": {
+          "$ref": "#/$defs/nullableCalibrationPose"
+        },
+        "tvInKeyboardRig": {
+          "$ref": "#/$defs/nullableCalibrationPose"
+        },
+        "tagTransforms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/calibrationTagTransform"
+          },
+          "maxItems": 6
+        },
+        "failureReasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "maxItems": 32
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "maxItems": 32
+        },
+        "rawFramesPersisted": {
+          "const": false
+        },
+        "simulation": {
+          "type": "boolean"
+        }
+      }
+    },
+    "calibrationTagSample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tagId",
+        "acceptedCount",
+        "rejectedCount",
+        "positionRmsMeters",
+        "rotationRmsDegrees"
+      ],
+      "properties": {
+        "tagId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "acceptedCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rejectedCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "positionRmsMeters": {
+          "type": "number",
+          "minimum": 0
+        },
+        "rotationRmsDegrees": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 180
+        }
+      }
+    },
+    "calibrationTagTransform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tagId", "poseInKeyboardRig"],
+      "properties": {
+        "tagId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "poseInKeyboardRig": {
+          "$ref": "#/$defs/calibrationPose"
+        }
+      }
+    },
+    "nullableNonNegativeNumber": {
+      "anyOf": [
+        { "type": "number", "minimum": 0 },
+        { "type": "null" }
+      ]
+    },
+    "nullableCalibrationPose": {
+      "anyOf": [
+        { "$ref": "#/$defs/calibrationPose" },
+        { "type": "null" }
+      ]
+    },
+    "calibrationPose": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position", "rotation"],
+      "properties": {
+        "position": {
+          "$ref": "#/$defs/calibrationVector3"
+        },
+        "rotation": {
+          "$ref": "#/$defs/calibrationQuaternion"
+        }
+      }
+    },
+    "calibrationVector3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      }
+    },
+    "calibrationQuaternion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "z", "w"],
+      "properties": {
+        "x": { "type": "number", "minimum": -1, "maximum": 1 },
+        "y": { "type": "number", "minimum": -1, "maximum": 1 },
+        "z": { "type": "number", "minimum": -1, "maximum": 1 },
+        "w": { "type": "number", "minimum": -1, "maximum": 1 }
+      }
+    },
     "prepareTrialPayload": {
       "type": "object",
       "additionalProperties": false,
@@ -188,8 +606,11 @@
         "puzzleId",
         "drEnabled",
         "drTarget",
+        "drProfileVersion",
         "trialDurationSeconds",
-        "configurationHash"
+        "configurationHash",
+        "calibrationStatus",
+        "calibrationOverrideReason"
       ],
       "properties": {
         "role": {
@@ -212,13 +633,51 @@
         "drTarget": {
           "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/distractorType"
         },
+        "drProfileVersion": {
+          "const": "PHASE6_TEST_V1"
+        },
         "trialDurationSeconds": {
           "const": 420
         },
         "configurationHash": {
           "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/sha256"
+        },
+        "calibrationStatus": {
+          "enum": ["PASS", "OVERRIDDEN"]
+        },
+        "calibrationOverrideReason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "calibrationStatus": { "const": "OVERRIDDEN" }
+            },
+            "required": ["calibrationStatus"]
+          },
+          "then": {
+            "properties": {
+              "calibrationOverrideReason": { "type": "string" }
+            }
+          },
+          "else": {
+            "properties": {
+              "calibrationOverrideReason": { "type": "null" }
+            }
+          }
+        }
+      ]
     },
     "readyPayload": {
       "type": "object",
@@ -228,6 +687,7 @@
         "calibrationStatus",
         "calibrationOverrideReason",
         "drStateMatches",
+        "drState",
         "appVersion",
         "deviceStatus",
         "reasons"
@@ -256,6 +716,9 @@
         },
         "drStateMatches": {
           "type": "boolean"
+        },
+        "drState": {
+          "$ref": "#/$defs/drStateReport"
         },
         "appVersion": {
           "type": "string",
@@ -326,12 +789,16 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "appliedStateVersion"
+        "appliedStateVersion",
+        "drState"
       ],
       "properties": {
         "appliedStateVersion": {
           "type": "integer",
           "minimum": 0
+        },
+        "drState": {
+          "$ref": "#/$defs/drStateReport"
         }
       }
     },
@@ -373,7 +840,8 @@
       "additionalProperties": false,
       "required": [
         "outcome",
-        "appliedStateVersion"
+        "appliedStateVersion",
+        "drState"
       ],
       "properties": {
         "outcome": {
@@ -382,6 +850,9 @@
         "appliedStateVersion": {
           "type": "integer",
           "minimum": 0
+        },
+        "drState": {
+          "$ref": "#/$defs/drStateReport"
         }
       }
     },
@@ -438,19 +909,68 @@
         }
       }
     },
+    "heartbeatAckPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "serverReceiveMonotonicMs"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "serverReceiveMonotonicMs": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/monotonicMs"
+        }
+      }
+    },
     "stateSnapshotPayload": {
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "snapshot",
+        "snapshotHash"
+      ],
+      "properties": {
+        "snapshot": {
+          "$ref": "#/$defs/stateSnapshot"
+        },
+        "snapshotHash": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "stateSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
         "laptopState",
+        "stateVersion",
         "activeTrialId",
         "trialStartedAtUtc",
         "trialStartedAtMonotonicMs",
-        "outcome"
+        "outcome",
+        "assignment",
+        "currentTrial",
+        "trialConfigurationHash",
+        "desiredQuestState",
+        "drEnabled",
+        "drTarget",
+        "drProfileVersion",
+        "calibrationStatus",
+        "failSafeRequired",
+        "reconnectConfirmationRequired",
+        "timer"
       ],
       "properties": {
         "laptopState": {
           "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/laptopState"
+        },
+        "stateVersion": {
+          "type": "integer",
+          "minimum": 0
         },
         "activeTrialId": {
           "anyOf": [
@@ -490,6 +1010,439 @@
             {
               "type": "null"
             }
+          ]
+        },
+        "assignment": {
+          "$ref": "#/$defs/snapshotAssignment"
+        },
+        "currentTrial": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/snapshotTrial"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "trialConfigurationHash": {
+          "anyOf": [
+            {
+              "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "desiredQuestState": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/questState"
+        },
+        "drEnabled": {
+          "type": "boolean"
+        },
+        "drTarget": {
+          "anyOf": [
+            {
+              "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/distractorType"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "drProfileVersion": {
+          "const": "PHASE6_TEST_V1"
+        },
+        "calibrationStatus": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/calibrationStatus"
+        },
+        "failSafeRequired": {
+          "type": "boolean"
+        },
+        "reconnectConfirmationRequired": {
+          "type": "boolean"
+        },
+        "timer": {
+          "$ref": "#/$defs/timerView"
+        }
+      }
+    },
+    "snapshotAssignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deviceId",
+        "participantId",
+        "role"
+      ],
+      "properties": {
+        "deviceId": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/deviceId"
+        },
+        "participantId": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/participantId"
+        },
+        "role": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/role"
+        }
+      }
+    },
+    "snapshotTrial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trialId",
+        "kind",
+        "order",
+        "blockIndex",
+        "condition",
+        "distractorType",
+        "puzzleId",
+        "replacementForTrialId",
+        "includeInAnalysis"
+      ],
+      "properties": {
+        "trialId": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialId"
+        },
+        "kind": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialKind"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "blockIndex": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "condition": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/condition"
+        },
+        "distractorType": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/distractorType"
+        },
+        "puzzleId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "replacementForTrialId": {
+          "anyOf": [
+            {
+              "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "includeInAnalysis": {
+          "type": "boolean"
+        }
+      }
+    },
+    "timerView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "running",
+        "timeLimitMs",
+        "elapsedMs",
+        "limitReached",
+        "overrunMs"
+      ],
+      "properties": {
+        "running": {
+          "type": "boolean"
+        },
+        "timeLimitMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "elapsedMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limitReached": {
+          "type": "boolean"
+        },
+        "overrunMs": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "snapshotAppliedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "appliedStateVersion",
+        "snapshotHash"
+      ],
+      "properties": {
+        "appliedStateVersion": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "snapshotHash": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/sha256"
+        },
+        "drState": {
+          "$ref": "#/$defs/drStateReport"
+        }
+      }
+    },
+    "continueAfterRecoveryPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshotStateVersion",
+        "snapshotHash"
+      ],
+      "properties": {
+        "snapshotStateVersion": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "snapshotHash": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "sessionReferencePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionId"
+      ],
+      "properties": {
+        "sessionId": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/uuid"
+        }
+      }
+    },
+    "localLogStatusPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionId",
+        "retained",
+        "recordCount",
+        "sha256"
+      ],
+      "properties": {
+        "sessionId": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/uuid"
+        },
+        "retained": {
+          "type": "boolean"
+        },
+        "recordCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "cleanupLocalLogPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionId",
+        "expectedSha256"
+      ],
+      "properties": {
+        "sessionId": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/uuid"
+        },
+        "expectedSha256": {
+          "anyOf": [
+            {
+              "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "localLogCleanedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionId",
+        "deleted"
+      ],
+      "properties": {
+        "sessionId": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/uuid"
+        },
+        "deleted": {
+          "const": true
+        }
+      }
+    },
+    "drPreviewPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "target",
+        "profileVersion",
+        "debugBounds"
+      ],
+      "properties": {
+        "action": {
+          "enum": [
+            "PREPARE",
+            "SHOW",
+            "HIDE",
+            "REVEAL",
+            "SET_DEBUG_BOUNDS",
+            "REPORT"
+          ]
+        },
+        "target": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/distractorType"
+        },
+        "profileVersion": {
+          "const": "PHASE6_TEST_V1"
+        },
+        "debugBounds": {
+          "anyOf": [
+            { "type": "boolean" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": { "const": "SET_DEBUG_BOUNDS" }
+            },
+            "required": ["action"]
+          },
+          "then": {
+            "properties": {
+              "debugBounds": { "type": "boolean" }
+            }
+          },
+          "else": {
+            "properties": {
+              "debugBounds": { "type": "null" }
+            }
+          }
+        }
+      ]
+    },
+    "drStateReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requestedAction",
+        "target",
+        "profileVersion",
+        "requestedEnabled",
+        "actualState",
+        "prepared",
+        "maskVisible",
+        "debugBoundsVisible",
+        "geometryActive",
+        "calibrationAttemptId",
+        "calibrationStatus",
+        "drStateMatches",
+        "measuredFps",
+        "performanceTargetFps",
+        "performanceGateEvaluated",
+        "performanceGatePass",
+        "reason"
+      ],
+      "properties": {
+        "requestedAction": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{1,63}$"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/distractorType"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "profileVersion": {
+          "const": "PHASE6_TEST_V1"
+        },
+        "requestedEnabled": { "type": "boolean" },
+        "actualState": {
+          "enum": [
+            "HIDDEN",
+            "NO_DR",
+            "PREPARED",
+            "VISIBLE",
+            "REVEALED",
+            "FAIL_SAFE",
+            "ERROR"
+          ]
+        },
+        "prepared": { "type": "boolean" },
+        "maskVisible": { "type": "boolean" },
+        "debugBoundsVisible": { "type": "boolean" },
+        "geometryActive": { "type": "boolean" },
+        "calibrationAttemptId": {
+          "anyOf": [
+            {
+              "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "calibrationStatus": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/calibrationStatus"
+        },
+        "drStateMatches": { "type": "boolean" },
+        "measuredFps": {
+          "anyOf": [
+            { "type": "number", "minimum": 0 },
+            { "type": "null" }
+          ]
+        },
+        "performanceTargetFps": { "const": 72 },
+        "performanceGateEvaluated": { "type": "boolean" },
+        "performanceGatePass": {
+          "anyOf": [
+            { "type": "boolean" },
+            { "type": "null" }
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            { "type": "string", "minLength": 1, "maxLength": 512 },
+            { "type": "null" }
           ]
         }
       }

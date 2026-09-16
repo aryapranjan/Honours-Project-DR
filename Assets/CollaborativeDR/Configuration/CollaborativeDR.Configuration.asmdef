@@ -1,0 +1,16 @@
+{
+  "name": "CollaborativeDR.Configuration",
+  "rootNamespace": "CollaborativeDR.Configuration",
+  "references": [
+    "CollaborativeDR.StudyCore"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

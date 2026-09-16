@@ -1,0 +1,19 @@
+{
+  "name": "CollaborativeDR.DiminishedReality",
+  "rootNamespace": "CollaborativeDR.DiminishedReality",
+  "references": [
+    "CollaborativeDR.StudyCore",
+    "CollaborativeDR.Calibration",
+    "CollaborativeDR.Protocol",
+    "Oculus.VR"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

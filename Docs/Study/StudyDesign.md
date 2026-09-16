@@ -2,7 +2,7 @@
 
 Status: implementation specification with pilot-dependent parameters identified
 
-Last reconciled: 2026-07-20
+Last reconciled: 2026-08-06
 
 ## Research Aim
 
@@ -28,7 +28,7 @@ visual attention.
 - Location: one fixed physical study room
 - Hardware: two Quest 3 headsets and one experimenter MacBook
 - Primary task: Director-guided physical tangram construction
-- Maximum trial duration: 420 seconds
+- Time-limit threshold: exactly 420 seconds, displayed as an upward stopwatch
 - Practice trials: one, unscored
 - Scored trials: six per dyad before technical replacements
 - DR configurations: three, within dyad
@@ -182,16 +182,27 @@ must be held constant and documented.
 6. The laptop sends `COMMIT_START` with a synchronized future time.
 7. Both Quests acknowledge.
 8. OBS recording and stimulus state are confirmed.
-9. The authoritative 420-second timer starts.
+9. The authoritative stopwatch starts at `00:00` and counts upward.
 10. The pair communicates and the Builder constructs the figure.
 11. The Builder says `submit`.
 12. The experimenter records Submit.
-13. If incorrect and time remains, the experimenter says only `Continue`. The
-    attempt is logged, the timer does not pause, and the pair may submit again.
-14. The trial ends on correct completion, timeout, approved abort, or technical
-    invalidation.
-15. The system validates expected event and media artifacts.
-16. Short post-trial ratings are completed for scored trials.
+13. If incorrect, the experimenter says only `Continue`. The attempt is logged,
+    the stopwatch does not pause, and the pair may submit again.
+14. At 420 seconds the dashboard shows `Time limit reached` and continues
+    counting upward without automatically stopping the server trial.
+15. Submissions remain recordable after the threshold. Each is marked
+    `afterTimeLimit=true` and retains its attempt number, decision, and elapsed
+    time.
+16. A confirmed correct late submission ends the trial as `TIMEOUT`, while
+    recording that the construction was completed after the limit and its late
+    correct completion time.
+17. If no late correct submission occurs, the experimenter may confirm
+    `End trial — time limit reached` to record `TIMEOUT` and freeze the actual
+    end elapsed time.
+18. A trial may otherwise end on an on-time correct completion, approved abort, or
+    technical invalidation.
+19. The system validates expected event and media artifacts.
+20. Short post-trial ratings are completed for scored trials.
 
 The practice trial follows the same system path using `NO_DR` with the keyboard
 distractor. It is marked `PRACTICE` and excluded from scored exports and scored
@@ -234,7 +245,7 @@ reported.
 
 ### Primary behavioral outcomes
 
-- Correct completion within 420 seconds
+- Correct completion before the 420-second threshold
 - Completion time
 - Objective final-arrangement accuracy
 
@@ -250,6 +261,11 @@ reported.
 - Approximate head orientation toward distractors
 
 Head orientation is an attention proxy and must not be described as eye gaze.
+
+For a timeout, 420 seconds remains the primary task-performance threshold.
+Post-limit attempts and any late correct completion time are retained for
+secondary analysis and auditability, but they do not convert the outcome to
+`COMPLETED`.
 
 ### Subjective outcomes
 

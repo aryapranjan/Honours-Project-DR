@@ -2,7 +2,7 @@
 
 Status: implementation data contract; retention details remain ethics-dependent
 
-Last reconciled: 2026-07-16
+Last reconciled: 2026-08-26
 
 ## Data Principles
 
@@ -27,6 +27,7 @@ Every record should include the identifiers relevant to its scope:
 - `pair_id`
 - `participant_id`
 - `device_id`
+- `device_slot`
 - `role`
 - `trial_id`
 - `condition`
@@ -94,8 +95,11 @@ Collect:
 - trial preparation time;
 - committed start time;
 - actual start time;
-- submission time;
-- timeout;
+- submission attempt number, runtime decision, elapsed time, and
+  `afterTimeLimit` flag;
+- 420-second time-limit threshold event;
+- experimenter-confirmed timeout end time and overrun;
+- correct post-limit completion flag and late correct completion time;
 - completion;
 - invalidation;
 - abort;
@@ -137,29 +141,44 @@ collection requires a protocol amendment and explicit ethics approval.
 
 Authority: Quest
 
-Recommended rate: detector rate, initially up to approximately `20 Hz`
+Processing rate during calibration: configurable, initially approximately
+`10 Hz` for one six-second attempt
 
-Format: local JSONL backup and selected telemetry to laptop
+Format: transient on-headset observations; aggregate derived report in the
+Quest backup log and laptop authoritative event log
 
-Collect:
+Temporarily process:
 
 - tag ID;
 - camera frame timestamp;
 - four image-space corner coordinates;
 - estimated world position;
 - estimated world rotation;
-- decision margin or available confidence measure;
-- reprojection error;
 - pose age;
 - observation accepted or rejected;
 - rejection reason;
-- image resolution;
-- intrinsics version;
-- camera pose version; and
-- processing duration.
+- and image resolution.
 
-Do not assume a confidence value exists if the AprilTag library does not expose
-one. The schema should permit null values with an explicit reason.
+Persist or transmit only:
+
+- expected and observed tag IDs;
+- accepted and rejected counts;
+- per-tag accepted/rejected counts;
+- per-tag position and rotation RMS;
+- aggregate rig transforms, geometry residuals, warnings, and failure reasons;
+- attempt timing, camera side, and image resolution; and
+- an explicit `rawFramesPersisted=false` privacy marker.
+
+Individual image-space corners, per-frame world poses, raw pixels, confidence,
+and reprojection data are not written to the Quest or laptop logs. The reviewed
+detector does not expose a calibrated confidence or reprojection-error value, so
+the implementation does not invent one.
+
+Under `PROVISIONAL_PHASE5_V2`, conservatively filtered isolated position
+outliers remain visible in the rejected counts and warnings. Per-tag rotation
+RMS remains stored as a diagnostic quality measure; it is not by itself a
+calibration failure because the authoritative room frames use tag-centre
+positions. Broad or sustained positional instability remains a failure.
 
 ## 6. Calibration Attempts and Results
 
@@ -172,7 +191,7 @@ Collect:
 - rig type;
 - expected tag IDs;
 - observed tag IDs;
-- tag side length;
+- tag family and locked detection-corner side length (`0.0567 m`);
 - expected tag geometry version;
 - attempt start and end;
 - sample count;
@@ -183,7 +202,6 @@ Collect:
 - measured inter-tag distances;
 - translation residual;
 - rotation residual;
-- reprojection residual;
 - stability over time;
 - quality result;
 - tolerance profile version;
@@ -192,6 +210,12 @@ Collect:
 - final target transform used by DR.
 
 Failed attempts are retained.
+
+The Phase 4 networking artifact could report an explicitly labelled test-only
+calibration override. Protocol `1.2.0` now records measured derived Phase 5
+reports separately. Any manual override remains reasoned and distinguishable
+from a measured passing attempt, and must not be analysed as calibration or DR
+quality evidence.
 
 ## 7. Headset Pose and Orientation Proxy
 
@@ -254,6 +278,7 @@ Recommended rate: approximately `1 Hz`, plus immediate fault events
 Collect where supported:
 
 - app version;
+- approved build identifier and match result;
 - protocol version;
 - Unity version;
 - headset model;
@@ -266,13 +291,18 @@ Collect where supported:
 - PCA availability;
 - calibration validity;
 - WebSocket state;
+- assigned temporary device slot;
+- assigned participant ID and role;
 - heartbeat sequence;
 - current authoritative state version;
 - current trial ID;
 - current DR state;
 - exception;
-- fatal error; and
-- local log-write status.
+- fatal error;
+- local log-write status;
+- local log record count, size, and SHA-256 checksum;
+- snapshot hash validation result; and
+- whether continuation is awaiting explicit experimenter confirmation.
 
 Do not collect controller or hand skeleton telemetry unless later justified.
 
@@ -284,9 +314,14 @@ Format: network JSONL, with critical events duplicated in the authoritative log
 
 Collect:
 
+- one-time enrollment-code creation and redemption result, without recording
+  the code itself;
+- assigned temporary `QUEST_A` or `QUEST_B` slot;
+- advertised server endpoint;
 - connection and disconnection;
-- device authentication;
+- device authentication result, without recording the access token;
 - protocol negotiation;
+- exact app-build compatibility result;
 - heartbeat send and receive;
 - command send and receive;
 - acknowledgement;
@@ -300,10 +335,30 @@ Collect:
 - rejected command and reason;
 - reconnect;
 - snapshot synchronization;
+- snapshot checksum validation;
+- experimenter continuation confirmation;
 - fault duration; and
 - three-second invalidation trigger.
 
 Do not log secrets or unnecessary full payload copies.
+
+### Quest local-log lifecycle
+
+The Quest backup log is not deleted on enrollment, reconnect, or trial end. For
+each headset, retain and report:
+
+- session ID and temporary device slot;
+- whether a local log is retained;
+- record count;
+- SHA-256 checksum;
+- laptop export-validation status;
+- cleanup eligibility;
+- explicit cleanup command ID and time; and
+- cleanup acknowledgement or failure reason.
+
+Cleanup is a separate experimenter action. It is permitted only after the
+laptop has validated the session export and the expected checksum/status agrees
+with the headset report.
 
 ## 11. Distractor Condition
 
@@ -381,6 +436,8 @@ Collect:
 - experimenter Submit event;
 - submission number;
 - elapsed time;
+- whether the 420-second threshold was reached;
+- actual timeout-button elapsed time and experimenter response overrun;
 - runtime correctness decision;
 - standardized `Continue` event;
 - final outcome;
@@ -492,6 +549,65 @@ Analysis exports should include:
 
 Raw event JSONL remains the source of truth. CSV files are reproducible derived
 exports.
+
+### Phase 4 development artifact evidence
+
+The current non-production Android artifact was built at
+`2026-08-11 17:36:38 +0930` as
+`Builds/Android/CollaborativeDR-Phase4.apk`, size `86,101,218` bytes, SHA-256
+`15a773ea04925ec882105a9da08ccc718e6ec937222a1091b6dc1ae5343dad46`. Its
+packaged debug manifest was verified to include the headset-camera and Internet
+permissions, permit cleartext for the isolated authenticated study network, and
+omit `android:networkSecurityConfig`.
+
+The APK was installed non-destructively via `hzdb` on Quest 3 serial
+`2G0YC1ZF9Z03HD` under the Wearable Computer Lab profile. The rebuilt app
+launched in `240 ms` with no crash signal. A 300-line Unity warning query
+returned no warnings while the app was off-head. These are engineering
+verification records, not participant data.
+
+The right-controller repair enables Android `OVRInputModule` activation and
+adds the Meta Core v85 right-controller/ray prefab under
+`RightControllerAnchor`, with `RTouch`, child `OVRRayHelper`, and
+`PrimaryIndexTrigger` configured explicitly. The object is active only during
+setup, enrollment, connection, and synchronization. Automated verification is
+`8/8` EditMode plus `2/2` in
+`Logs/Phase4PlayModeControllerResults.xml`. On the immediately preceding build
+(SHA-256
+`938ede286080e882bb292faca12087b6b0950af31a565350e8e117c29f70462d`),
+`Logs/Phase4Device/phase4-controller-fix-metacam.png` physically shows the right
+Touch model, white beam, and cursor over the setup keypad. The address changed
+to `5888` and six-digit pairing validation status appeared, verifying
+trigger-driven setup input. Controller events are not added to the participant
+dataset.
+
+The optional `OVRRayHelper` cursor is disabled because Meta Core v85
+`OVRRaycaster` leaves `RaycastResult.worldNormal` zero, which otherwise produces
+`Look rotation viewing vector is zero` continuously. `Cursor` and `CursorFill`
+are null; the validated non-null `Renderer` continues to provide the beam and
+hover interaction. This is engineering configuration evidence, not a collected
+participant variable.
+
+After changing `CenterEyeAnchor` from `CameraClearFlags.Nothing` to transparent
+`CameraClearFlags.SolidColor`, the post-fix screencap shows clean stereo UI with
+no bands. Passthrough is protected and appears black in an ordinary screencap;
+`hzdb metacam` itself is available and provided the physical controller evidence
+described above.
+
+This checksum identifies only the Phase 4 development artifact.
+Physical-plus-simulator pairing and reconnect/recovery evidence, and the
+two-physical-headset exit gate, remain pending. The final cursor-suppressed APK
+passed its on-head controller check on `2026-08-12`: clear passthrough and the
+white beam were visible, the right controller was `CONNECTED_ACTIVE` with
+positional tracking, and trigger input cleared the four-character pairing field.
+`Logs/Phase4Device/phase4-controller-final-trigger-confirmed.png` records the
+result (SHA-256
+`f41722e860bba6c6bc25b8ed623401317800feba2a6e0f2a6c5df0f784f6b8a0`). Unity
+and filtered device warning scans found no controller, EventSystem,
+null-reference, or `Look rotation` warning. This is engineering verification,
+not participant data, and no controller-event variable is added to collection.
+The final approved production APK requires its own manifest entry and checksum
+after release freeze.
 
 ## Recommended Session Layout
 

@@ -13,7 +13,12 @@ const laptopTransitions: Readonly<Record<LaptopState, ReadonlySet<LaptopState>>>
   POST_TRIAL: new Set(["PREFLIGHT", "CONDITION_REVIEW", "SESSION_COMPLETE"]),
   CONDITION_REVIEW: new Set(["PREFLIGHT", "SESSION_COMPLETE"]),
   SESSION_COMPLETE: new Set(),
-  RECOVERY_REQUIRED: new Set(["SESSION_SETUP", "PREFLIGHT", "BLOCKED"]),
+  RECOVERY_REQUIRED: new Set([
+    "SESSION_SETUP",
+    "PREFLIGHT",
+    "BLOCKED",
+    "SESSION_COMPLETE",
+  ]),
 };
 
 const questTransitions: Readonly<Record<QuestState, ReadonlySet<QuestState>>> = {

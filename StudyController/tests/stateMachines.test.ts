@@ -32,6 +32,12 @@ describe("laptop state machine", () => {
       assertLaptopTransition("PREFLIGHT", "TRIAL_ACTIVE"),
     ).toThrow("Invalid laptop transition");
   });
+
+  it("allows an interrupted session to close after a terminal recovery decision", () => {
+    expect(
+      canTransitionLaptop("RECOVERY_REQUIRED", "SESSION_COMPLETE"),
+    ).toBe(true);
+  });
 });
 
 describe("Quest state machine", () => {

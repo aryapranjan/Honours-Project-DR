@@ -1,0 +1,21 @@
+{
+  "name": "CollaborativeDR.Calibration",
+  "rootNamespace": "CollaborativeDR.Calibration",
+  "references": [
+    "CollaborativeDR.StudyCore",
+    "CollaborativeDR.Protocol",
+    "CollaborativeDR.Configuration",
+    "AprilTag.Runtime",
+    "Unity.Collections",
+    "meta.xr.mrutilitykit"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

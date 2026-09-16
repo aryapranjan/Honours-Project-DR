@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://collaborative-dr.local/schemas/counterbalance-plan.schema.json",
+  "title": "Collaborative DR pre-generated counterbalance plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "planId",
+    "planVersion",
+    "generatedAtUtc",
+    "randomizationSeed",
+    "validation",
+    "allocations"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/schemaVersion"
+    },
+    "planId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9_-]{1,63}$"
+    },
+    "planVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generatedAtUtc": {
+      "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/timestampUtc"
+    },
+    "randomizationSeed": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "validatedAtUtc",
+        "checks"
+      ],
+      "properties": {
+        "status": {
+          "const": "PASS"
+        },
+        "validatedAtUtc": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/timestampUtc"
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        }
+      }
+    },
+    "allocations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/allocation"
+      }
+    }
+  },
+  "$defs": {
+    "allocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allocationId",
+        "pairId",
+        "participantRoleAssignments",
+        "asymmetricRecipient",
+        "schedule",
+        "reservePuzzleIds"
+      ],
+      "properties": {
+        "allocationId": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Z0-9_-]{1,63}$"
+        },
+        "pairId": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/pairId"
+        },
+        "participantRoleAssignments": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "slot",
+              "role"
+            ],
+            "properties": {
+              "slot": {
+                "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/participantSlot"
+              },
+              "role": {
+                "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/role"
+              }
+            }
+          }
+        },
+        "asymmetricRecipient": {
+          "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/role"
+        },
+        "schedule": {
+          "$ref": "https://collaborative-dr.local/schemas/schedule.schema.json"
+        },
+        "reservePuzzleIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      }
+    }
+  }
+}

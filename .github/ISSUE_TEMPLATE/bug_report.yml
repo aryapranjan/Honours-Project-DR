@@ -41,7 +41,7 @@ body:
       label: Logs
       description: |
         For in-editor bugs, paste the logs from the "Console" window in the Unity Editor.
-        For on-device Quest bugs, paste the output of `adb logcat -s "Unity"`
+        For on-device Quest bugs, paste the output of `npx -y @meta-quest/hzdb log -t Unity`
       render: text
     validations:
       required: true

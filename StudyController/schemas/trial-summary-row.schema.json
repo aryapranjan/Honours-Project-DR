@@ -20,6 +20,8 @@
     "duration_ms",
     "submission_count",
     "first_submission_ms",
+    "completed_after_time_limit",
+    "late_correct_completion_ms",
     "live_final_accuracy",
     "verified_final_accuracy",
     "invalidation_reason",
@@ -67,8 +69,7 @@
     },
     "duration_ms": {
       "type": "integer",
-      "minimum": 0,
-      "maximum": 420000
+      "minimum": 0
     },
     "submission_count": {
       "type": "integer",
@@ -78,8 +79,21 @@
       "anyOf": [
         {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 420000
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "completed_after_time_limit": {
+      "type": "boolean"
+    },
+    "late_correct_completion_ms": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 420000
         },
         {
           "type": "null"
@@ -131,5 +145,40 @@
     "include_in_analysis": {
       "type": "boolean"
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "completed_after_time_limit": {
+            "const": true
+          }
+        },
+        "required": [
+          "completed_after_time_limit"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outcome": {
+            "const": "TIMEOUT"
+          },
+          "live_final_accuracy": {
+            "const": "CORRECT"
+          },
+          "late_correct_completion_ms": {
+            "type": "integer",
+            "minimum": 420000
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "late_correct_completion_ms": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
 }

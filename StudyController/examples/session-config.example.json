@@ -1,28 +1,31 @@
 {
-  "schemaVersion": "1.0.0",
-  "protocolVersion": "1.0.0",
+  "schemaVersion": "1.4.0",
+  "protocolVersion": "1.3.0",
   "studyId": "CDR",
   "sessionId": "5d81618b-b713-4d67-8e81-b9096671b8b7",
-  "pairId": "P012",
+  "pairId": "PAIR-012",
   "createdAtUtc": "2026-07-20T00:00:00.000Z",
+  "approvedQuestBuildId": "cdr-phase6-dev-1",
   "trialDurationSeconds": 420,
   "asymmetricRecipient": "DIRECTOR",
   "deviceAssignments": [
     {
       "deviceId": "QUEST_A",
+      "participantId": "P012-A",
       "role": "DIRECTOR",
       "accessTokenRef": "runtime-secrets/quest-a"
     },
     {
       "deviceId": "QUEST_B",
+      "participantId": "P012-B",
       "role": "BUILDER",
       "accessTokenRef": "runtime-secrets/quest-b"
     }
   ],
   "calibrationPolicy": {
     "manualOverrideAllowed": true,
-    "thresholdProfile": null
+    "thresholdProfile": "PROVISIONAL_PHASE5_V2"
   },
   "schedulePath": "schedule.example.json",
-  "scheduleSha256": "e3305e8f70a2377b14fb0650096c41617417e6723ad6f07fdfa4fa4458b3aed9"
+  "scheduleSha256": "d6180c023a62f6441a9ee760dc4c4c18fe66dc7c0b4a34ae80245a8f861133a4"
 }

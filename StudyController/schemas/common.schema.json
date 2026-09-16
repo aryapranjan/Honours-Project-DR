@@ -4,7 +4,7 @@
   "title": "Collaborative DR shared contract definitions",
   "$defs": {
     "schemaVersion": {
-      "const": "1.0.0"
+      "const": "1.4.0"
     },
     "protocolVersion": {
       "type": "string",
@@ -20,11 +20,23 @@
     },
     "pairId": {
       "type": "string",
-      "pattern": "^P[0-9]{3,}$"
+      "pattern": "^PAIR-[0-9]{3,}$"
+    },
+    "participantId": {
+      "type": "string",
+      "pattern": "^P[0-9]{3,}-[AB]$"
+    },
+    "participantSlot": {
+      "enum": [
+        "A",
+        "B"
+      ]
     },
     "deviceId": {
-      "type": "string",
-      "pattern": "^QUEST_[A-Z0-9_-]+$"
+      "enum": [
+        "QUEST_A",
+        "QUEST_B"
+      ]
     },
     "trialId": {
       "type": "string",

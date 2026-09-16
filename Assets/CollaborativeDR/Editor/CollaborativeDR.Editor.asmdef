@@ -1,0 +1,28 @@
+{
+  "name": "CollaborativeDR.Editor",
+  "rootNamespace": "CollaborativeDR.Editor",
+  "references": [
+    "CollaborativeDR.StudyCore",
+    "CollaborativeDR.Protocol",
+    "CollaborativeDR.Telemetry",
+    "CollaborativeDR.Networking",
+    "CollaborativeDR.Calibration",
+    "CollaborativeDR.Configuration",
+    "CollaborativeDR.DiminishedReality",
+    "CollaborativeDR.UserInterface",
+    "meta.xr.mrutilitykit",
+    "Oculus.VR",
+    "Oculus.VR.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

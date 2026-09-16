@@ -22,6 +22,8 @@ export const TRIAL_SUMMARY_COLUMNS = [
   "duration_ms",
   "submission_count",
   "first_submission_ms",
+  "completed_after_time_limit",
+  "late_correct_completion_ms",
   "live_final_accuracy",
   "verified_final_accuracy",
   "invalidation_reason",
@@ -45,6 +47,8 @@ export interface TrialSummaryRow {
   duration_ms: number;
   submission_count: number;
   first_submission_ms: number | null;
+  completed_after_time_limit: boolean;
+  late_correct_completion_ms: number | null;
   live_final_accuracy: Accuracy | null;
   verified_final_accuracy: Accuracy | null;
   invalidation_reason: string | null;

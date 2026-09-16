@@ -1,0 +1,26 @@
+{
+  "name": "CollaborativeDR.Tests.PlayMode",
+  "rootNamespace": "CollaborativeDR.Tests.PlayMode",
+  "references": [
+    "CollaborativeDR.StudyCore",
+    "CollaborativeDR.Telemetry",
+    "CollaborativeDR.Protocol",
+    "CollaborativeDR.Networking",
+    "CollaborativeDR.DiminishedReality",
+    "CollaborativeDR.UserInterface",
+    "Oculus.VR",
+    "Unity.ugui",
+    "UnityEngine.TestRunner"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

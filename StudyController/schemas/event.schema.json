@@ -64,7 +64,18 @@
         "MESSAGE_RECEIVED",
         "DEVICE_CONNECTED",
         "DEVICE_DISCONNECTED",
+        "PAIRING_CODE_ISSUED",
+        "DEVICE_ENROLLED",
+        "STATE_SNAPSHOT_APPLIED",
+        "RECONNECT_CONTINUATION_CONFIRMED",
+        "QUEST_LOCAL_LOG_STATUS_RECORDED",
+        "QUEST_LOCAL_LOG_CLEANED",
+        "CALIBRATION_STARTED",
         "CALIBRATION_RECORDED",
+        "CALIBRATION_COMPATIBILITY_EVALUATED",
+        "CALIBRATION_COMMAND_FAILED",
+        "DR_STATE_REPORTED",
+        "DR_PREVIEW_COMMAND_COMPLETED",
         "PREFLIGHT_CONFIRMED",
         "TRIAL_PREPARED",
         "TRIAL_COMMITTED",
@@ -73,8 +84,13 @@
         "STANDARDIZED_CONTINUE_GIVEN",
         "TRIAL_STOPPED",
         "TRIAL_OUTCOME_RECORDED",
+        "TIME_LIMIT_REACHED",
         "FAULT_RAISED",
         "FAULT_CLEARED",
+        "MEDIA_STATUS_RECORDED",
+        "REPLACEMENT_SCHEDULED",
+        "RECOVERY_RESOLVED",
+        "EXPORT_VALIDATED",
         "SNAPSHOT_WRITTEN",
         "EXPERIMENTER_ACTION",
         "EVENT_CORRECTED"
@@ -194,6 +210,25 @@
       "if": {
         "properties": {
           "eventType": {
+            "const": "TIME_LIMIT_REACHED"
+          }
+        },
+        "required": [
+          "eventType"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/timeLimitReachedPayload"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
             "const": "TRIAL_OUTCOME_RECORDED"
           }
         },
@@ -261,11 +296,28 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "durationLimitMs"
+        "timeLimitMs"
       ],
       "properties": {
-        "durationLimitMs": {
+        "timeLimitMs": {
           "const": 420000
+        }
+      }
+    },
+    "timeLimitReachedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timeLimitMs",
+        "observedElapsedMs"
+      ],
+      "properties": {
+        "timeLimitMs": {
+          "const": 420000
+        },
+        "observedElapsedMs": {
+          "type": "integer",
+          "minimum": 420000
         }
       }
     },
@@ -275,7 +327,8 @@
       "required": [
         "attemptNumber",
         "elapsedMs",
-        "runtimeDecision"
+        "runtimeDecision",
+        "afterTimeLimit"
       ],
       "properties": {
         "attemptNumber": {
@@ -284,13 +337,45 @@
         },
         "elapsedMs": {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 420000
+          "minimum": 0
         },
         "runtimeDecision": {
           "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/runtimeDecision"
+        },
+        "afterTimeLimit": {
+          "type": "boolean"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "afterTimeLimit": {
+                "const": true
+              }
+            },
+            "required": [
+              "afterTimeLimit"
+            ]
+          },
+          "then": {
+            "properties": {
+              "elapsedMs": {
+                "type": "integer",
+                "minimum": 420000
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "elapsedMs": {
+                "type": "integer",
+                "maximum": 419999
+              }
+            }
+          }
+        }
+      ]
     },
     "continuePayload": {
       "type": "object",
@@ -324,7 +409,10 @@
         "outcome",
         "submissionCount",
         "liveFinalAccuracy",
-        "verifiedFinalAccuracy"
+        "verifiedFinalAccuracy",
+        "elapsedMs",
+        "completedAfterTimeLimit",
+        "lateCorrectCompletionMs"
       ],
       "properties": {
         "outcome": {
@@ -353,8 +441,68 @@
               "type": "null"
             }
           ]
+        },
+        "elapsedMs": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "completedAfterTimeLimit": {
+          "type": "boolean"
+        },
+        "lateCorrectCompletionMs": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 420000
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "completedAfterTimeLimit": {
+                "const": true
+              }
+            },
+            "required": [
+              "completedAfterTimeLimit"
+            ]
+          },
+          "then": {
+            "properties": {
+              "outcome": {
+                "const": "TIMEOUT"
+              },
+              "liveFinalAccuracy": {
+                "const": "CORRECT"
+              },
+              "lateCorrectCompletionMs": {
+                "type": "integer",
+                "minimum": 420000
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "lateCorrectCompletionMs": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

@@ -11,6 +11,7 @@
     "sessionId",
     "pairId",
     "createdAtUtc",
+    "approvedQuestBuildId",
     "trialDurationSeconds",
     "asymmetricRecipient",
     "deviceAssignments",
@@ -37,6 +38,10 @@
     "createdAtUtc": {
       "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/timestampUtc"
     },
+    "approvedQuestBuildId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,64}$"
+    },
     "trialDurationSeconds": {
       "const": 420
     },
@@ -52,12 +57,16 @@
         "additionalProperties": false,
         "required": [
           "deviceId",
+          "participantId",
           "role",
           "accessTokenRef"
         ],
         "properties": {
           "deviceId": {
             "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/deviceId"
+          },
+          "participantId": {
+            "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/participantId"
           },
           "role": {
             "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/role"

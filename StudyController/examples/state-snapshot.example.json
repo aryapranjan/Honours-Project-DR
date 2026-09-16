@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.4.0",
   "sessionId": "5d81618b-b713-4d67-8e81-b9096671b8b7",
   "stateVersion": 7,
   "lastEventSequence": 7,
@@ -7,9 +7,21 @@
   "createdAtMonotonicMs": 187000,
   "laptopState": "TRIAL_ACTIVE",
   "activeTrialId": "SCORED-01",
+  "currentTrialIndex": 1,
   "trialStartedAtUtc": "2026-07-20T00:01:05.000Z",
   "trialStartedAtMonotonicMs": 66000,
+  "submissionCount": 1,
   "outcome": null,
+  "completedTrialIds": [
+    "PRACTICE-01"
+  ],
+  "preflight": {
+    "directorQuestConnected": true,
+    "builderQuestConnected": true,
+    "recordingReady": true,
+    "storageReady": true,
+    "physicalDistractorConfirmed": true
+  },
   "questStates": [
     {
       "deviceId": "QUEST_A",
@@ -21,5 +33,10 @@
       "state": "TRIAL_ACTIVE",
       "lastAppliedStateVersion": 7
     }
-  ]
+  ],
+  "recovery": {
+    "required": false,
+    "interruptedState": null,
+    "reason": null
+  }
 }

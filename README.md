@@ -13,6 +13,16 @@ The project includes **five sample scenes** demonstrating various use cases:
 |:-------------:|:--------------------:|:---------------------:|:------------:|
 | ![GIF 1](./Media/CameraToWorld.gif) | ![GIF 2](./Media/BrightnessEstimation.gif) | ![GIF 3](./Media/ObjectDetectionSentis.gif) | ![GIF 4](./Media/ShaderSample.gif) |
 
+## Collaborative DR study extension
+
+This checkout also contains the authoritative Final Design study application in
+`Assets/Final-Design-Scene.unity`, its laptop controller in `StudyController/`,
+and the study documentation in `Docs/`. Start with
+[`Docs/PROJECT_HANDOFF.md`](Docs/PROJECT_HANDOFF.md); Phase 6 implementation and
+remaining physical gates are recorded in
+[`Docs/Development/Phase6Implementation.md`](Docs/Development/Phase6Implementation.md).
+The original sample scenes remain available as reference material.
+
 ## Documentation
 
 For comprehensive guides, API reference, and tutorials, visit the official Meta Developers documentation:
@@ -91,7 +101,7 @@ If you encounter any issues, please report them with:
 - **Unity Engine version**
 - **XR plugin** (Oculus XR or Open XR) and version number
 - **Quest device** model and **Horizon OS version**
-- **Logcat logs** (use `adb logcat >> log.txt`)
+- **Quest logs** (use `npx -y @meta-quest/hzdb log -t Unity`)
 - **Video or screenshot** of the issue
 - **Relevant information** about your use case
 
@@ -104,8 +114,12 @@ However,
 
 See the [`CONTRIBUTING`](./CONTRIBUTING.md) file for how to help out.
 
-## AI coding agents
+## Development tooling
 
-This repo is wired up for AI coding agents — `AGENTS.md`, `.vscode/extensions.json`, `.mcp.json`, `.cursor/rules/`, and a few client-specific dotfiles surface the **Meta Horizon** VS Code/Cursor extension, the `hzdb` MCP server, and the Meta Quest skill set automatically.
+Project-specific Quest guidance lives in `AGENTS.md`. The repository keeps one
+shared `hzdb` configuration in `.mcp.json`, plus the Unity and Quest setup used
+by VS Code in `.vscode/`. Client-specific AI configuration files are deliberately
+excluded to keep the project root focused on the study implementation.
 
-Full toolchain, including Unity skills and per-client install instructions: [github.com/meta-quest/agentic-tools](https://github.com/meta-quest/agentic-tools).
+Optional Quest tooling and Unity skills are available from
+[github.com/meta-quest/agentic-tools](https://github.com/meta-quest/agentic-tools).

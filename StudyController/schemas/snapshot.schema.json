@@ -13,10 +13,15 @@
     "createdAtMonotonicMs",
     "laptopState",
     "activeTrialId",
+    "currentTrialIndex",
     "trialStartedAtUtc",
     "trialStartedAtMonotonicMs",
+    "submissionCount",
     "outcome",
-    "questStates"
+    "completedTrialIds",
+    "preflight",
+    "questStates",
+    "recovery"
   ],
   "properties": {
     "schemaVersion": {
@@ -52,6 +57,10 @@
         }
       ]
     },
+    "currentTrialIndex": {
+      "type": "integer",
+      "minimum": 0
+    },
     "trialStartedAtUtc": {
       "anyOf": [
         {
@@ -72,6 +81,10 @@
         }
       ]
     },
+    "submissionCount": {
+      "type": "integer",
+      "minimum": 0
+    },
     "outcome": {
       "anyOf": [
         {
@@ -81,6 +94,41 @@
           "type": "null"
         }
       ]
+    },
+    "completedTrialIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/trialId"
+      }
+    },
+    "preflight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "directorQuestConnected",
+        "builderQuestConnected",
+        "recordingReady",
+        "storageReady",
+        "physicalDistractorConfirmed"
+      ],
+      "properties": {
+        "directorQuestConnected": {
+          "type": "boolean"
+        },
+        "builderQuestConnected": {
+          "type": "boolean"
+        },
+        "recordingReady": {
+          "type": "boolean"
+        },
+        "storageReady": {
+          "type": "boolean"
+        },
+        "physicalDistractorConfirmed": {
+          "type": "boolean"
+        }
+      }
     },
     "questStates": {
       "type": "array",
@@ -105,6 +153,42 @@
             "type": "integer",
             "minimum": 0
           }
+        }
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required",
+        "interruptedState",
+        "reason"
+      ],
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "interruptedState": {
+          "anyOf": [
+            {
+              "$ref": "https://collaborative-dr.local/schemas/common.schema.json#/$defs/laptopState"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     }

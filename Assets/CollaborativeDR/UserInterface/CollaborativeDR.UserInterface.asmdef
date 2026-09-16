@@ -1,0 +1,20 @@
+{
+  "name": "CollaborativeDR.UserInterface",
+  "rootNamespace": "CollaborativeDR.UserInterface",
+  "references": [
+    "CollaborativeDR.StudyCore",
+    "CollaborativeDR.Networking",
+    "Unity.ugui",
+    "Unity.InputSystem",
+    "Oculus.VR"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

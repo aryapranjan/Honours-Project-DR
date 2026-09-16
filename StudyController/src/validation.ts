@@ -4,6 +4,9 @@ import { Ajv2020, type ErrorObject } from "ajv/dist/2020.js";
 import type { FormatsPlugin } from "ajv-formats";
 
 import commonSchema from "../schemas/common.schema.json" with { type: "json" };
+import counterbalancePlanSchema from "../schemas/counterbalance-plan.schema.json" with {
+  type: "json",
+};
 import eventSchema from "../schemas/event.schema.json" with { type: "json" };
 import messageSchema from "../schemas/message.schema.json" with { type: "json" };
 import scheduleSchema from "../schemas/schedule.schema.json" with { type: "json" };
@@ -16,12 +19,14 @@ import trialSummaryRowSchema from "../schemas/trial-summary-row.schema.json" wit
 };
 import type {
   Condition,
+  CounterbalancePlan,
   DistractorType,
   Schedule,
   SessionConfig,
 } from "./contracts.js";
 
 export const SCHEMA_IDS = {
+  counterbalancePlan: counterbalancePlanSchema.$id,
   event: eventSchema.$id,
   message: messageSchema.$id,
   schedule: scheduleSchema.$id,
@@ -40,6 +45,7 @@ addFormats(ajv);
 
 for (const schema of [
   commonSchema,
+  counterbalancePlanSchema,
   eventSchema,
   messageSchema,
   scheduleSchema,
@@ -79,6 +85,9 @@ export function validateSessionSemantics(config: SessionConfig): string[] {
   const issues: string[] = [];
   const devices = new Set(config.deviceAssignments.map(({ deviceId }) => deviceId));
   const roles = new Set(config.deviceAssignments.map(({ role }) => role));
+  const participants = new Set(
+    config.deviceAssignments.map(({ participantId }) => participantId),
+  );
 
   if (devices.size !== 2) {
     issues.push("Session must assign two distinct Quest device IDs.");
@@ -86,6 +95,55 @@ export function validateSessionSemantics(config: SessionConfig): string[] {
 
   if (roles.size !== 2 || !roles.has("DIRECTOR") || !roles.has("BUILDER")) {
     issues.push("Session must assign exactly one Director and one Builder.");
+  }
+
+  if (participants.size !== 2) {
+    issues.push("Session must assign two distinct participant IDs.");
+  }
+
+  return issues;
+}
+
+export function validateCounterbalancePlanSemantics(
+  plan: CounterbalancePlan,
+): string[] {
+  const issues: string[] = [];
+  const allocationIds = new Set<string>();
+  const pairIds = new Set<string>();
+
+  for (const allocation of plan.allocations) {
+    if (allocationIds.has(allocation.allocationId)) {
+      issues.push(`Duplicate allocation ID: ${allocation.allocationId}.`);
+    }
+    allocationIds.add(allocation.allocationId);
+
+    if (pairIds.has(allocation.pairId)) {
+      issues.push(`Duplicate pair ID: ${allocation.pairId}.`);
+    }
+    pairIds.add(allocation.pairId);
+
+    const slots = new Set(
+      allocation.participantRoleAssignments.map(({ slot }) => slot),
+    );
+    const roles = new Set(
+      allocation.participantRoleAssignments.map(({ role }) => role),
+    );
+    if (slots.size !== 2 || !slots.has("A") || !slots.has("B")) {
+      issues.push(
+        `${allocation.allocationId} must assign participant slots A and B.`,
+      );
+    }
+    if (roles.size !== 2 || !roles.has("DIRECTOR") || !roles.has("BUILDER")) {
+      issues.push(
+        `${allocation.allocationId} must assign one Director and one Builder.`,
+      );
+    }
+
+    issues.push(
+      ...validateScheduleSemantics(allocation.schedule).map(
+        (issue) => `${allocation.allocationId}: ${issue}`,
+      ),
+    );
   }
 
   return issues;
