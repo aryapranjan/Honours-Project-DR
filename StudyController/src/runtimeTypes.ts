@@ -13,6 +13,7 @@ import type {
   DrPreviewAction,
   DistractorType,
 } from "./contracts.js";
+import type { MediaArtifact, MediaReadiness } from "./services/ObsMediaController.js";
 
 export const PREFLIGHT_KEYS = [
   "directorQuestConnected",
@@ -60,6 +61,28 @@ export interface TrialRuntimeView {
   definition: TrialDefinition;
   submissionCount: number;
   outcome: TrialOutcome | null;
+}
+
+export type QuestionnaireKind =
+  | "PRE_STUDY"
+  | "POST_TRIAL"
+  | "POST_CONDITION"
+  | "POST_SESSION";
+
+export interface QuestionnaireCompletion {
+  kind: QuestionnaireKind;
+  participantId: string;
+  scopeId: string;
+  recordedAtUtc: string;
+}
+
+export interface QuestionnaireGateView {
+  required: boolean;
+  pending: QuestionnaireKind | null;
+  scopeId: string | null;
+  participantIds: string[];
+  completedParticipantIds: string[];
+  formUrl: string | null;
 }
 
 export interface ExportValidationReport {
@@ -159,6 +182,7 @@ export interface DashboardState {
     config: SessionConfig;
     allocationId: string;
     scheduleId: string;
+    closed: boolean;
   } | null;
   currentTrialIndex: number;
   currentTrial: TrialRuntimeView | null;
@@ -171,6 +195,14 @@ export interface DashboardState {
   calibrationComparison: CalibrationComparisonView;
   drPreview: DrPreviewView;
   preflight: PreflightStatus;
+  media: {
+    mode: "SIMULATED" | "OBS";
+    readiness: MediaReadiness | null;
+    recordingTrialId: string | null;
+    interruptedRecordingTrialId: string | null;
+    artifacts: MediaArtifact[];
+  };
+  questionnaireGate: QuestionnaireGateView;
   timer: TimerView;
   faults: ActiveFault[];
   recovery: RecoveryView;

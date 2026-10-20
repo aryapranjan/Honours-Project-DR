@@ -52,6 +52,9 @@ import {
   type LocalLogRuntimeStatus,
   type PreflightKey,
   type PreflightStatus,
+  type QuestionnaireCompletion,
+  type QuestionnaireGateView,
+  type QuestionnaireKind,
   type RecoveryView,
 } from "../runtimeTypes.js";
 import { assertLaptopTransition } from "../stateMachines.js";
@@ -62,6 +65,7 @@ import {
   validateSessionSemantics,
 } from "../validation.js";
 import { AuthoritativeTimer } from "./AuthoritativeTimer.js";
+import { writeArtifactManifest } from "./ArtifactManifest.js";
 import { CommandCoordinator } from "./CommandCoordinator.js";
 import { ConnectionWatchdog } from "./ConnectionWatchdog.js";
 import {
@@ -74,6 +78,11 @@ import {
   type EnrollmentIdentity,
 } from "./EnrollmentManager.js";
 import { ExportValidator } from "./ExportValidator.js";
+import type {
+  MediaArtifact,
+  MediaReadiness,
+  MediaCapture,
+} from "./ObsMediaController.js";
 import {
   SnapshotManager,
   writeJsonAtomic,
@@ -90,6 +99,10 @@ export interface StudySessionManagerOptions {
   approvedQuestBuildId?: string;
   pairingCodeTtlMs?: number;
   drPreviewEnabled?: boolean;
+  questionnaireGateEnabled?: boolean;
+  questionnaireUrls?: Partial<Record<QuestionnaireKind, string>>;
+  obsMedia?: MediaCapture;
+  obsCaptureConfigurationSha256?: string;
   onStateChanged?: (state: DashboardState) => void;
 }
 
@@ -133,6 +146,14 @@ export class StudySessionManager {
   private readonly advertisedHost: string;
   private readonly approvedQuestBuildId: string;
   private readonly drPreviewEnabled: boolean;
+  private readonly questionnaireGateEnabled: boolean;
+  private readonly questionnaireUrls: Partial<Record<QuestionnaireKind, string>>;
+  private readonly questionnaireCompletions = new Map<string, QuestionnaireCompletion>();
+  private readonly obsMedia: MediaCapture | null;
+  private mediaReadiness: MediaReadiness | null = null;
+  private mediaRecordingTrialId: string | null = null;
+  private interruptedRecordingTrialId: string | null = null;
+  private readonly mediaArtifacts = new Map<string, MediaArtifact>();
   private serverPort: number;
   private readonly onStateChanged:
     | ((state: DashboardState) => void)
@@ -147,6 +168,8 @@ export class StudySessionManager {
   private allocation: CounterbalanceAllocation | null = null;
   private schedule: Schedule | null = null;
   private sessionDirectory: string | null = null;
+  private sessionClosed = false;
+  private legacyWorkflowPolicy = false;
   private eventLogger: EventLogger | null = null;
   private snapshotManager: SnapshotManager | null = null;
   private currentTrialIndex = 0;
@@ -194,6 +217,16 @@ export class StudySessionManager {
     this.approvedQuestBuildId =
       options.approvedQuestBuildId ?? DEFAULT_APPROVED_QUEST_BUILD_ID;
     this.drPreviewEnabled = options.drPreviewEnabled === true;
+    this.questionnaireGateEnabled = options.questionnaireGateEnabled === true;
+    this.questionnaireUrls = options.questionnaireUrls ?? {};
+    for (const formUrl of Object.values(this.questionnaireUrls)) {
+      if (formUrl === undefined) continue;
+      const parsed = new URL(formUrl);
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+        throw new Error("Questionnaire URLs must use HTTP or HTTPS.");
+      }
+    }
+    this.obsMedia = options.obsMedia ?? null;
     this.enrollment =
       options.pairingCodeTtlMs === undefined
         ? new EnrollmentManager(this.clock)
@@ -325,6 +358,15 @@ export class StudySessionManager {
       path.join(sessionDirectory, "schedule.json"),
       this.schedule,
     );
+    await writeJsonAtomic(path.join(sessionDirectory, "workflow-policy.json"), {
+      schemaVersion: "1.0.0",
+      obsRequired: this.obsMedia !== null,
+      ...(this.options.obsCaptureConfigurationSha256 === undefined
+        ? {} : { obsCaptureConfigurationSha256: this.options.obsCaptureConfigurationSha256 }),
+      questionnaireGateRequired: this.questionnaireGateEnabled,
+      formLinksSha256: sha256CanonicalJson(this.questionnaireUrls),
+      createdAtUtc: isoNow(this.clock),
+    });
 
     this.sessionConfig = config;
     this.sessionDirectory = sessionDirectory;
@@ -384,6 +426,36 @@ export class StudySessionManager {
     const schedule = JSON.parse(
       await readFile(path.join(sessionDirectory, config.schedulePath), "utf8"),
     ) as Schedule;
+    let policy: {
+      obsRequired: boolean;
+      obsCaptureConfigurationSha256?: string;
+      questionnaireGateRequired: boolean;
+      formLinksSha256?: string;
+    };
+    try {
+      policy = JSON.parse(
+        await readFile(path.join(sessionDirectory, "workflow-policy.json"), "utf8"),
+      ) as typeof policy;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      if (Date.parse(config.createdAtUtc) >= Date.parse("2026-10-06T00:00:00Z")) {
+        throw new Error("Active session is missing its workflow policy file.");
+      }
+      this.legacyWorkflowPolicy = true;
+      policy = { obsRequired: false, questionnaireGateRequired: false };
+    }
+    if (
+      policy.obsRequired !== (this.obsMedia !== null) ||
+      (policy.obsCaptureConfigurationSha256 !== undefined &&
+        policy.obsCaptureConfigurationSha256 !== this.options.obsCaptureConfigurationSha256) ||
+      policy.questionnaireGateRequired !== this.questionnaireGateEnabled ||
+      (policy.formLinksSha256 !== undefined &&
+        policy.formLinksSha256 !== sha256CanonicalJson(this.questionnaireUrls))
+    ) {
+      throw new Error(
+        "Active session media/questionnaire policy differs from this server configuration. Restart with the original capture settings, modes, and form links.",
+      );
+    }
     assertSchema(SCHEMA_IDS.sessionConfig, config);
     assertSchema(SCHEMA_IDS.schedule, schedule);
 
@@ -417,7 +489,49 @@ export class StudySessionManager {
     this.outcome = snapshot.outcome;
     this.completedTrialIds = [...snapshot.completedTrialIds];
     this.preflight = { ...snapshot.preflight };
+    if (this.obsMedia !== null) {
+      // A prior process's readiness evidence cannot authorize a new process.
+      this.preflight.recordingReady = false;
+      this.preflight.storageReady = false;
+    }
     this.recovery = { ...snapshot.recovery };
+    for (const event of await this.eventLogger.readAll()) {
+      if (event.eventType === "MEDIA_STATUS_RECORDED") {
+        const media = event.payload as { action?: string; artifact?: MediaArtifact };
+        if (media.action === "RECORDING_STARTED" && event.trialId !== null) {
+          this.interruptedRecordingTrialId = event.trialId;
+        }
+        if (media.action === "RECORDING_SAVED" && media.artifact !== undefined) {
+          this.mediaArtifacts.set(media.artifact.trialId, media.artifact);
+          if (this.interruptedRecordingTrialId === media.artifact.trialId) {
+            this.interruptedRecordingTrialId = null;
+          }
+        }
+      }
+      if (event.eventType !== "EXPERIMENTER_ACTION") {
+        continue;
+      }
+      const payload = event.payload as Partial<QuestionnaireCompletion> & {
+        action?: string;
+      };
+      if (
+        payload.action === "QUESTIONNAIRE_COMPLETED" &&
+        payload.kind !== undefined &&
+        payload.participantId !== undefined &&
+        payload.scopeId !== undefined
+      ) {
+        const completion: QuestionnaireCompletion = {
+          kind: payload.kind,
+          participantId: payload.participantId,
+          scopeId: payload.scopeId,
+          recordedAtUtc: event.recordedAtUtc,
+        };
+        this.questionnaireCompletions.set(
+          this.questionnaireKey(completion),
+          completion,
+        );
+      }
+    }
 
     this.watchdog.configure(config.deviceAssignments);
     this.configureCoordinator();
@@ -502,7 +616,17 @@ export class StudySessionManager {
     ) {
       throw new Error(`Cannot begin preflight from ${this.laptopState}.`);
     }
+    if (this.laptopState === "CONDITION_REVIEW") {
+      if (this.questionnaireGateEnabled) {
+        throw new Error("Complete condition review before beginning the next preflight.");
+      }
+      this.requireQuestionnaireGateComplete();
+    }
+    if (this.laptopState === "SESSION_SETUP") {
+      this.requireQuestionnaireGateComplete();
+    }
     this.preflight = emptyPreflight();
+    this.mediaReadiness = null;
     this.updateConnectionPreflight();
     await this.transition("PREFLIGHT");
     return this.getDashboardState();
@@ -521,6 +645,9 @@ export class StudySessionManager {
     ) {
       throw new Error("Quest connection checks are controlled by the server.");
     }
+    if (this.obsMedia !== null && (key === "recordingReady" || key === "storageReady")) {
+      throw new Error("OBS recording and storage checks are controlled by the media check.");
+    }
     this.preflight[key] = value;
     await this.requireLogger().append({
       trialId: this.currentTrial()?.trialId ?? null,
@@ -538,6 +665,9 @@ export class StudySessionManager {
       throw new Error("Preflight is not active.");
     }
     this.updateConnectionPreflight();
+    if (this.obsMedia !== null) {
+      await this.checkMedia();
+    }
     const missing = PREFLIGHT_KEYS.filter((key) => !this.preflight[key]);
     if (missing.length > 0) {
       throw new Error(`Preflight is incomplete: ${missing.join(", ")}.`);
@@ -563,6 +693,97 @@ export class StudySessionManager {
     }
     await this.transition("CALIBRATION");
     return this.getDashboardState();
+  }
+
+  public async checkMedia(): Promise<DashboardState> {
+    if (this.obsMedia === null) {
+      throw new Error("OBS media control is not configured.");
+    }
+    if (this.laptopState !== "PREFLIGHT") {
+      throw new Error("OBS media checks are available only during PREFLIGHT.");
+    }
+    try {
+      this.mediaReadiness = await this.obsMedia.inspect(this.requireSessionDirectory());
+    } catch (error) {
+      this.mediaReadiness = {
+        mode: "OBS",
+        checkedAtUtc: isoNow(this.clock),
+        ready: false,
+        cameraSource: "",
+        cameraActive: false,
+        microphones: [],
+        availableBytes: 0,
+        storageReady: false,
+        recordDirectory: "",
+        issues: [error instanceof Error ? error.message : String(error)],
+      };
+    }
+    this.preflight.recordingReady = this.mediaReadiness.ready;
+    this.preflight.storageReady = this.mediaReadiness.storageReady;
+    await this.requireLogger().append({
+      trialId: this.currentTrial()?.trialId ?? null,
+      stateVersion: this.stateVersion,
+      source: "SERVER",
+      eventType: "MEDIA_STATUS_RECORDED",
+      payload: {
+        action: "READINESS_CHECKED",
+        ready: this.mediaReadiness.ready,
+        cameraActive: this.mediaReadiness.cameraActive,
+        microphones: this.mediaReadiness.microphones,
+        availableBytes: this.mediaReadiness.availableBytes,
+        issues: this.mediaReadiness.issues,
+      },
+    });
+    this.publish();
+    return this.getDashboardState();
+  }
+
+  public async mediaPreview(): Promise<string> {
+    if (this.obsMedia === null || this.laptopState !== "PREFLIGHT") {
+      throw new Error("OBS camera preview is available only during media preflight.");
+    }
+    return this.obsMedia.cameraPreview();
+  }
+
+  public async recoverInterruptedRecording(
+    input: GuardedActionInput,
+  ): Promise<DashboardState> {
+    this.requireGuard(input, true);
+    const trialId = this.interruptedRecordingTrialId;
+    if (this.obsMedia === null || trialId === null) {
+      throw new Error("No interrupted OBS recording is pending recovery.");
+    }
+    if (!["RECOVERY_REQUIRED", "POST_TRIAL", "BLOCKED"].includes(this.laptopState)) {
+      throw new Error("OBS recording recovery is not allowed in this state.");
+    }
+    try {
+      const artifact = await this.obsMedia.recover(trialId, this.requireSessionDirectory());
+      this.mediaArtifacts.set(trialId, artifact);
+      this.interruptedRecordingTrialId = null;
+      await this.requireLogger().append({
+        trialId,
+        stateVersion: this.stateVersion,
+        source: "DASHBOARD",
+        eventType: "MEDIA_STATUS_RECORDED",
+        payload: {
+          action: "RECORDING_SAVED",
+          artifact,
+          recoveredAfterInterruption: true,
+          reason: input.reason,
+        },
+      });
+      await this.clearFault("OBS");
+      this.exportValidation = null;
+      this.publish();
+      return this.getDashboardState();
+    } catch (error) {
+      await this.raiseFault(
+        "OBS",
+        `Interrupted recording recovery failed: ${error instanceof Error ? error.message : String(error)}`,
+        true,
+      );
+      throw error;
+    }
   }
 
   public async runCalibration(): Promise<DashboardState> {
@@ -887,12 +1108,31 @@ export class StudySessionManager {
     }
     const trial = this.requireCurrentTrial();
     await this.transition("TRIAL_COMMITTED");
-    const startAtMonotonicMs = this.clock.monotonicNow() + this.startLeadMs;
-    const startAtUtc = new Date(
-      this.clock.utcNow().getTime() + this.startLeadMs,
-    ).toISOString();
+    let startStage: "OBS" | "COMMAND_COORDINATOR" =
+      this.obsMedia === null ? "COMMAND_COORDINATOR" : "OBS";
 
     try {
+      if (this.obsMedia !== null) {
+        this.mediaReadiness = await this.obsMedia.inspect(this.requireSessionDirectory());
+        if (!this.mediaReadiness.ready) {
+          throw new Error(`OBS is not ready: ${this.mediaReadiness.issues.join("; ")}`);
+        }
+        await this.obsMedia.start(trial.trialId, this.requireSessionDirectory());
+        this.mediaRecordingTrialId = trial.trialId;
+        this.interruptedRecordingTrialId = trial.trialId;
+        await this.requireLogger().append({
+          trialId: trial.trialId,
+          stateVersion: this.stateVersion,
+          source: "SERVER",
+          eventType: "MEDIA_STATUS_RECORDED",
+          payload: { action: "RECORDING_STARTED", trialId: trial.trialId },
+        });
+      }
+      const startAtMonotonicMs = this.clock.monotonicNow() + this.startLeadMs;
+      const startAtUtc = new Date(
+        this.clock.utcNow().getTime() + this.startLeadMs,
+      ).toISOString();
+      startStage = "COMMAND_COORDINATOR";
       await this.coordinator.commitStart(
         trial.trialId,
         startAtUtc,
@@ -931,8 +1171,26 @@ export class StudySessionManager {
       return this.getDashboardState();
     } catch (error) {
       this.timer.stop();
+      if (this.obsMedia?.isRecordingTrial(trial.trialId) === true) {
+        try {
+          const artifact = await this.obsMedia.stop(trial.trialId);
+          this.mediaArtifacts.set(trial.trialId, artifact);
+          this.interruptedRecordingTrialId = null;
+          await this.requireLogger().append({
+            trialId: trial.trialId,
+            stateVersion: this.stateVersion,
+            source: "SERVER",
+            eventType: "MEDIA_STATUS_RECORDED",
+            payload: { action: "RECORDING_SAVED", artifact, interruptedStart: true },
+          });
+        } catch (stopError) {
+          await this.raiseFault("OBS", `Recording cleanup failed: ${String(stopError)}`, true);
+        } finally {
+          this.mediaRecordingTrialId = null;
+        }
+      }
       await this.raiseFault(
-        "COMMAND_COORDINATOR",
+        startStage,
         error instanceof Error ? error.message : "Trial start failed.",
         true,
       );
@@ -1068,6 +1326,9 @@ export class StudySessionManager {
     if (this.laptopState !== "POST_TRIAL") {
       throw new Error("The controller is not in POST_TRIAL.");
     }
+    if (this.interruptedRecordingTrialId !== null) {
+      throw new Error("Recover the interrupted OBS recording before advancing.");
+    }
     if (
       this.outcome === "PARTICIPANT_WITHDRAWAL" ||
       this.outcome === "EXPERIMENTER_ABORTED"
@@ -1075,6 +1336,8 @@ export class StudySessionManager {
       await this.transition("SESSION_COMPLETE");
       return this.getDashboardState();
     }
+
+    this.requireQuestionnaireGateComplete();
 
     const previous = this.requireCurrentTrial();
     this.currentTrialIndex += 1;
@@ -1089,12 +1352,73 @@ export class StudySessionManager {
 
     const next = this.currentTrial();
     if (next === null) {
-      await this.transition("SESSION_COMPLETE");
+      if (this.questionnaireGateEnabled && previous.blockIndex !== null) {
+        await this.transition("CONDITION_REVIEW");
+      } else {
+        await this.transition("SESSION_COMPLETE");
+      }
     } else if (
       previous.kind !== "PRACTICE" &&
       previous.blockIndex !== next.blockIndex
     ) {
       await this.transition("CONDITION_REVIEW");
+    } else {
+      this.preflight = emptyPreflight();
+      this.updateConnectionPreflight();
+      await this.transition("PREFLIGHT");
+    }
+    return this.getDashboardState();
+  }
+
+  public async recordQuestionnaireCompletion(
+    kind: QuestionnaireKind,
+    participantId: string,
+  ): Promise<DashboardState> {
+    if (!this.questionnaireGateEnabled) {
+      throw new Error("Questionnaire completion tracking is disabled.");
+    }
+    const gate = this.questionnaireGateView();
+    if (gate.pending !== kind || gate.scopeId === null) {
+      throw new Error(`No ${kind} questionnaire is due in ${this.laptopState}.`);
+    }
+    if (!gate.participantIds.includes(participantId)) {
+      throw new Error("Participant ID is not assigned to this session.");
+    }
+    const completion: QuestionnaireCompletion = {
+      kind,
+      participantId,
+      scopeId: gate.scopeId,
+      recordedAtUtc: isoNow(this.clock),
+    };
+    const key = this.questionnaireKey(completion);
+    if (this.questionnaireCompletions.has(key)) {
+      return this.getDashboardState();
+    }
+    await this.requireLogger().append({
+      trialId: kind === "POST_TRIAL" ? gate.scopeId : null,
+      stateVersion: this.stateVersion,
+      source: "DASHBOARD",
+      eventType: "EXPERIMENTER_ACTION",
+      payload: {
+        action: "QUESTIONNAIRE_COMPLETED",
+        kind,
+        participantId,
+        scopeId: gate.scopeId,
+      },
+    });
+    this.questionnaireCompletions.set(key, completion);
+    this.exportValidation = null;
+    this.publish();
+    return this.getDashboardState();
+  }
+
+  public async completeConditionReview(): Promise<DashboardState> {
+    if (this.laptopState !== "CONDITION_REVIEW") {
+      throw new Error("No condition review is pending.");
+    }
+    this.requireQuestionnaireGateComplete();
+    if (this.currentTrial() === null) {
+      await this.transition("SESSION_COMPLETE");
     } else {
       this.preflight = emptyPreflight();
       this.updateConnectionPreflight();
@@ -1110,6 +1434,9 @@ export class StudySessionManager {
     this.requireGuard(input, true);
     if (this.laptopState !== "RECOVERY_REQUIRED" || !this.recovery.required) {
       throw new Error("No recovery decision is pending.");
+    }
+    if (this.interruptedRecordingTrialId !== null) {
+      throw new Error("Recover the interrupted OBS recording before resolving the trial.");
     }
     const trial = this.currentTrial();
     await this.requireLogger().append({
@@ -1208,6 +1535,9 @@ export class StudySessionManager {
     if (this.laptopState !== "SESSION_COMPLETE") {
       throw new Error("Quest backup logs can only be cleaned after session completion.");
     }
+    if (this.sessionClosed) {
+      throw new Error("Quest backup logs must be cleaned before closing the session.");
+    }
     if (this.exportValidation?.valid !== true) {
       throw new Error("Validate the laptop export before cleaning Quest backup logs.");
     }
@@ -1238,6 +1568,7 @@ export class StudySessionManager {
         payload: { deviceId, priorSha256: status.sha256 },
       });
     }
+    this.exportValidation = null;
     this.publish();
     return this.getDashboardState();
   }
@@ -1255,12 +1586,35 @@ export class StudySessionManager {
       this.completedTrialIds,
       requireComplete,
     );
+    const startedTrialIds = events
+      .filter((event) => event.eventType === "TRIAL_STARTED" && event.trialId !== null)
+      .map((event) => event.trialId!);
+    if (this.obsMedia !== null) {
+      for (const trialId of startedTrialIds) {
+        if (!this.mediaArtifacts.has(trialId)) {
+          report.issues.push(`Started trial ${trialId} has no OBS media artifact.`);
+        }
+      }
+    }
+    if (requireComplete && this.questionnaireGateEnabled) {
+      const gate = this.questionnaireGateView();
+      const missing = gate.participantIds.filter(
+        (participantId) => !gate.completedParticipantIds.includes(participantId),
+      );
+      if (gate.pending !== null && missing.length > 0) {
+        report.issues.push(
+          `${gate.pending} questionnaire completion is missing for ${missing.join(", ")}.`,
+        );
+        report.valid = false;
+      }
+    }
     await this.exportValidator.writeTrialSummary(
       this.requireSessionDirectory(),
       config,
       schedule,
       events,
     );
+    report.valid = report.issues.length === 0;
     this.exportValidation = report;
     await this.requireLogger().append({
       trialId: null,
@@ -1273,6 +1627,36 @@ export class StudySessionManager {
         warningCount: report.warnings.length,
       },
     });
+    let manifest = await writeArtifactManifest(
+      this.requireSessionDirectory(),
+      this.obsMedia !== null,
+      startedTrialIds,
+      [...this.mediaArtifacts.values()],
+      this.legacyWorkflowPolicy,
+    );
+    const newIssues = manifest.issues.filter((issue) => !report.issues.includes(issue));
+    if (newIssues.length > 0) {
+      report.issues.push(...newIssues);
+      report.valid = false;
+      await this.requireLogger().append({
+        trialId: null,
+        stateVersion: this.stateVersion,
+        source: "SERVER",
+        eventType: "EXPORT_VALIDATED",
+        payload: {
+          valid: false,
+          issueCount: report.issues.length,
+          warningCount: report.warnings.length,
+        },
+      });
+      manifest = await writeArtifactManifest(
+        this.requireSessionDirectory(),
+        this.obsMedia !== null,
+        startedTrialIds,
+        [...this.mediaArtifacts.values()],
+        this.legacyWorkflowPolicy,
+      );
+    }
     this.publish();
     return report;
   }
@@ -1284,6 +1668,10 @@ export class StudySessionManager {
     if (this.laptopState !== "SESSION_COMPLETE") {
       throw new Error("The session is not complete.");
     }
+    if (this.sessionClosed) {
+      throw new Error("The session has already been closed.");
+    }
+    this.requireQuestionnaireGateComplete();
     const terminalEarly =
       this.outcome === "PARTICIPANT_WITHDRAWAL" ||
       this.outcome === "EXPERIMENTER_ABORTED";
@@ -1300,12 +1688,40 @@ export class StudySessionManager {
       eventType: "SESSION_CLOSED",
       payload: { reason: input.reason },
     });
-    await this.requireSnapshotManager().writeActivePointer({
-      sessionId: this.requireConfig().sessionId,
-      pairId: this.requireConfig().pairId,
-      relativeDirectory: this.requireConfig().pairId,
-      closed: true,
-    });
+    try {
+      const finalEvents = await this.requireLogger().readAll();
+      const finalManifest = await writeArtifactManifest(
+        this.requireSessionDirectory(),
+        this.obsMedia !== null,
+        finalEvents
+          .filter((event) => event.eventType === "TRIAL_STARTED" && event.trialId !== null)
+          .map((event) => event.trialId!),
+        [...this.mediaArtifacts.values()],
+        this.legacyWorkflowPolicy,
+      );
+      if (finalManifest.issues.length > 0) {
+        throw new Error(finalManifest.issues.join("; "));
+      }
+      await this.requireSnapshotManager().writeActivePointer({
+        sessionId: this.requireConfig().sessionId,
+        pairId: this.requireConfig().pairId,
+        relativeDirectory: this.requireConfig().pairId,
+        closed: true,
+      });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      await this.raiseFault("EXPORT", `Final artifact manifest failed: ${reason}`, true);
+      await this.requireLogger().append({
+        trialId: null,
+        stateVersion: this.stateVersion,
+        source: "SERVER",
+        eventType: "EXPERIMENTER_ACTION",
+        payload: { action: "SESSION_CLOSE_INCOMPLETE", reason },
+      });
+      this.exportValidation = null;
+      throw new Error(`Final artifact manifest failed: ${reason}`);
+    }
+    this.sessionClosed = true;
     this.coordinator.closeAll();
     this.watchdog.stop();
     this.publish();
@@ -1327,6 +1743,7 @@ export class StudySessionManager {
               config: structuredClone(this.sessionConfig),
               allocationId: this.allocation.allocationId,
               scheduleId: this.schedule?.scheduleId ?? "",
+              closed: this.sessionClosed,
             },
       currentTrialIndex: this.currentTrialIndex,
       currentTrial:
@@ -1356,6 +1773,14 @@ export class StudySessionManager {
         ),
       },
       preflight: { ...this.preflight },
+      media: {
+        mode: this.obsMedia === null ? "SIMULATED" : "OBS",
+        readiness: this.mediaReadiness === null ? null : structuredClone(this.mediaReadiness),
+        recordingTrialId: this.mediaRecordingTrialId,
+        interruptedRecordingTrialId: this.interruptedRecordingTrialId,
+        artifacts: [...this.mediaArtifacts.values()].map((artifact) => ({ ...artifact })),
+      },
+      questionnaireGate: this.questionnaireGateView(),
       timer: this.timer.view(),
       faults: [...this.faults.values()].map((fault) => ({ ...fault })),
       recovery: { ...this.recovery },
@@ -1390,6 +1815,39 @@ export class StudySessionManager {
           error instanceof Error ? error.message : "Quest stop failed.",
           true,
         );
+      }
+
+      if (this.obsMedia !== null) {
+        try {
+          const artifact = await this.obsMedia.stop(trial.trialId);
+          this.mediaArtifacts.set(trial.trialId, artifact);
+          this.mediaRecordingTrialId = null;
+          this.interruptedRecordingTrialId = null;
+          await this.requireLogger().append({
+            trialId: trial.trialId,
+            stateVersion: this.stateVersion,
+            source: "SERVER",
+            eventType: "MEDIA_STATUS_RECORDED",
+            payload: { action: "RECORDING_SAVED", artifact },
+          });
+        } catch (error) {
+          this.mediaRecordingTrialId = null;
+          await this.raiseFault(
+            "OBS",
+            `Recording failed for ${trial.trialId}: ${error instanceof Error ? error.message : String(error)}`,
+            true,
+          );
+          await this.requireLogger().append({
+            trialId: trial.trialId,
+            stateVersion: this.stateVersion,
+            source: "SERVER",
+            eventType: "MEDIA_STATUS_RECORDED",
+            payload: { action: "RECORDING_FAILED", reason: String(error) },
+          });
+          if (outcome === "COMPLETED" || outcome === "TIMEOUT") {
+            outcome = "TECHNICAL_INVALID";
+          }
+        }
       }
 
       await this.requireLogger().append({
@@ -1721,6 +2179,7 @@ export class StudySessionManager {
     assertLaptopTransition(this.laptopState, next);
     const previous = this.laptopState;
     this.laptopState = next;
+    this.exportValidation = null;
     this.stateVersion += 1;
     await this.requireLogger().append({
       trialId: this.activeTrialId,
@@ -2080,19 +2539,104 @@ export class StudySessionManager {
     }
   }
 
+  private questionnaireKey(
+    completion: Pick<QuestionnaireCompletion, "kind" | "scopeId" | "participantId">,
+  ): string {
+    return `${completion.kind}:${completion.scopeId}:${completion.participantId}`;
+  }
+
+  private questionnaireGateView(): QuestionnaireGateView {
+    const participantIds = this.sessionConfig?.deviceAssignments.map(
+      ({ participantId }) => participantId,
+    ) ?? [];
+    let pending: QuestionnaireKind | null = null;
+    let scopeId: string | null = null;
+    if (this.questionnaireGateEnabled && this.schedule !== null) {
+      if (this.laptopState === "SESSION_SETUP" && this.sessionConfig !== null) {
+        pending = "PRE_STUDY";
+        scopeId = this.sessionConfig.sessionId;
+      } else if (this.laptopState === "POST_TRIAL") {
+        const trial = this.currentTrial();
+        if (
+          trial !== null &&
+          trial.kind !== "PRACTICE" &&
+          (this.outcome === "COMPLETED" || this.outcome === "TIMEOUT")
+        ) {
+          pending = "POST_TRIAL";
+          scopeId = trial.trialId;
+        }
+      } else if (this.laptopState === "CONDITION_REVIEW") {
+        const previous = this.schedule.trials[this.currentTrialIndex - 1];
+        if (previous?.blockIndex !== null && previous?.blockIndex !== undefined) {
+          pending = "POST_CONDITION";
+          scopeId = `BLOCK-${previous.blockIndex}`;
+        }
+      } else if (
+        this.laptopState === "SESSION_COMPLETE" &&
+        this.outcome !== "PARTICIPANT_WITHDRAWAL" &&
+        this.outcome !== "EXPERIMENTER_ABORTED" &&
+        this.sessionConfig !== null
+      ) {
+        pending = "POST_SESSION";
+        scopeId = this.sessionConfig.sessionId;
+      }
+    }
+    const completedParticipantIds = pending === null || scopeId === null
+      ? []
+      : participantIds.filter((participantId) =>
+          this.questionnaireCompletions.has(
+            this.questionnaireKey({ kind: pending!, scopeId: scopeId!, participantId }),
+          ),
+        );
+    return {
+      required: this.questionnaireGateEnabled,
+      pending,
+      scopeId,
+      participantIds,
+      completedParticipantIds,
+      formUrl: pending === null ? null : this.questionnaireUrls[pending] ?? null,
+    };
+  }
+
+  private requireQuestionnaireGateComplete(): void {
+    const gate = this.questionnaireGateView();
+    if (
+      gate.pending !== null &&
+      gate.completedParticipantIds.length !== gate.participantIds.length
+    ) {
+      const missing = gate.participantIds.filter(
+        (participantId) => !gate.completedParticipantIds.includes(participantId),
+      );
+      throw new Error(
+        `${gate.pending} questionnaire completion is missing for ${missing.join(", ")}.`,
+      );
+    }
+  }
+
   private availableActions(): string[] {
     if (this.sessionConfig === null) {
       return ["CREATE_SESSION"];
     }
+    if (this.sessionClosed) {
+      return ["VALIDATE_EXPORT"];
+    }
     const actions = ["START_SIMULATORS", "STOP_SIMULATORS"];
+    if (
+      this.interruptedRecordingTrialId !== null &&
+      ["RECOVERY_REQUIRED", "POST_TRIAL", "BLOCKED"].includes(this.laptopState)
+    ) {
+      actions.push("RECOVER_MEDIA");
+    }
     if (this.drPreviewEnabled && this.laptopState === "CALIBRATION") {
       actions.push("DR_PREVIEW");
     }
     switch (this.laptopState) {
       case "SESSION_SETUP":
       case "BLOCKED":
-      case "CONDITION_REVIEW":
         actions.push("BEGIN_PREFLIGHT");
+        if (this.questionnaireGateView().pending !== null) {
+          actions.push("RECORD_QUESTIONNAIRE_COMPLETION");
+        }
         break;
       case "PREFLIGHT":
         actions.push("SET_PREFLIGHT", "CONFIRM_PREFLIGHT");
@@ -2125,12 +2669,26 @@ export class StudySessionManager {
         break;
       case "POST_TRIAL":
         actions.push("COMPLETE_POST_TRIAL");
+        if (this.questionnaireGateView().pending !== null) {
+          actions.push("RECORD_QUESTIONNAIRE_COMPLETION");
+        }
+        break;
+      case "CONDITION_REVIEW":
+        actions.push("COMPLETE_CONDITION_REVIEW");
+        if (this.questionnaireGateEnabled) {
+          actions.push("RECORD_QUESTIONNAIRE_COMPLETION");
+        } else {
+          actions.push("BEGIN_PREFLIGHT");
+        }
         break;
       case "RECOVERY_REQUIRED":
         actions.push("RESOLVE_RECOVERY");
         break;
       case "SESSION_COMPLETE":
         actions.push("VALIDATE_EXPORT", "CLOSE_SESSION");
+        if (this.questionnaireGateView().pending !== null) {
+          actions.push("RECORD_QUESTIONNAIRE_COMPLETION");
+        }
         if (this.exportValidation?.valid === true) {
           actions.push("CLEANUP_QUEST_LOCAL_LOGS");
         }

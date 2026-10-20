@@ -8,7 +8,7 @@ namespace CollaborativeDR.Protocol
     {
         public const string SchemaVersion = "1.4.0";
         public const string ProtocolVersion = "1.3.0";
-        public const string AppBuildId = "cdr-phase6-dev-1";
+        public const string AppBuildId = "cdr-newroom-white-dev-2";
         public const string DrProfileVersion = "PHASE6_TEST_V1";
         public const int DefaultServerPort = 4317;
         public const double HeartbeatIntervalSeconds = 0.5d;

@@ -20,7 +20,7 @@ interface GuardedDialogState {
 }
 
 const manualPreflight: Array<{ key: PreflightKey; label: string }> = [
-  { key: "recordingReady", label: "Simulated media system ready" },
+  { key: "recordingReady", label: "Media system ready" },
   { key: "storageReady", label: "Capture storage ready" },
   {
     key: "physicalDistractorConfirmed",
@@ -63,6 +63,7 @@ export function App() {
   const [state, setState] = useState<DashboardState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [cameraPreview, setCameraPreview] = useState<string | null>(null);
   const [submissionOpen, setSubmissionOpen] = useState(false);
   const [dialog, setDialog] = useState<GuardedDialogState | null>(null);
   const [dialogReason, setDialogReason] = useState("");
@@ -135,6 +136,19 @@ export function App() {
     }
   }, []);
 
+  const loadCameraPreview = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await api<{ imageData: string }>("/api/media/preview");
+      setCameraPreview(result.imageData);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Camera preview failed.");
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
   const actions = useMemo(
     () => new Set(state?.availableActions ?? []),
     [state?.availableActions],
@@ -179,7 +193,38 @@ export function App() {
         </div>
       )}
 
+      {state.media.interruptedRecordingTrialId !== null && (
+        <section className="panel action-panel">
+          <div>
+            <p className="eyebrow">OBS recording needs recovery</p>
+            <h2>{state.media.interruptedRecordingTrialId}</h2>
+            <p>OBS may still be recording. Stop and catalog the MKV before advancing.</p>
+          </div>
+          {actions.has("RECOVER_MEDIA") && (
+            <button className="primary" disabled={busy}
+              onClick={() => setDialog({
+                title: "Recover interrupted OBS recording",
+                endpoint: "/api/media/recover",
+                reasonRequired: true,
+                confirmLabel: "Stop and save recording",
+              })}>
+              Stop and save OBS recording
+            </button>
+          )}
+        </section>
+      )}
+
       <ServerConnectionCard connection={state.serverConnection} />
+
+      {(state.media.mode === "SIMULATED" || !state.questionnaireGate.required) && (
+        <div className="alert" role="status">
+          <strong>Development configuration</strong>
+          <span>
+            {state.media.mode === "SIMULATED" ? "OBS recording is simulated. " : ""}
+            {!state.questionnaireGate.required ? "Questionnaire gates are disabled." : ""}
+          </span>
+        </div>
+      )}
 
       {session === null ? (
         <SessionSetup busy={busy} onCreate={perform} />
@@ -191,6 +236,7 @@ export function App() {
                 <div>
                   <p className="eyebrow">Active session</p>
                   <h2>{session.config.pairId}</h2>
+                  {session.closed && <p>Session closed and final manifest saved.</p>}
                 </div>
                 <span className="mono">v{state.stateVersion}</span>
               </div>
@@ -308,7 +354,8 @@ export function App() {
                     <input
                       type="checkbox"
                       checked={state.preflight[key]}
-                      disabled={busy}
+                      disabled={busy || (state.media.mode === "OBS" &&
+                        (key === "recordingReady" || key === "storageReady"))}
                       onChange={(event) =>
                         void perform("/api/preflight/item", {
                           key,
@@ -316,10 +363,43 @@ export function App() {
                         })
                       }
                     />
-                    <span>{label}</span>
+                    <span>{key === "recordingReady" && state.media.mode === "SIMULATED"
+                      ? "Simulated media system ready"
+                      : label}</span>
                   </label>
                 ))}
               </div>
+              {state.media.mode === "OBS" && (
+                <div>
+                  <p>Ask both participants to speak at a normal level, then check OBS.</p>
+                  <div className="button-row">
+                    <button className="secondary" disabled={busy}
+                      onClick={() => void perform("/api/media/check")}>
+                      Check camera, microphones, and storage
+                    </button>
+                    <button className="secondary" disabled={busy}
+                      onClick={() => void loadCameraPreview()}>
+                      Preview overhead camera
+                    </button>
+                  </div>
+                  {state.media.readiness !== null && (
+                    <div>
+                      <p>{state.media.readiness.ready ? "OBS ready" : "OBS needs attention"}</p>
+                      {state.media.readiness.microphones.map((mic) => (
+                        <p key={mic.participant}>Participant {mic.participant}: {mic.inputName}
+                          {mic.channel === null ? "" : ` (${mic.channel.toLowerCase()} channel)`}: {mic.peakDbfs === null
+                            ? "no level" : `${mic.peakDbfs.toFixed(1)} dBFS peak`}; track {mic.track}
+                          {mic.issue === null ? " — ready" : ` — ${mic.issue}`}</p>
+                      ))}
+                      {state.media.readiness.issues.map((issue) => <p key={issue}>{issue}</p>)}
+                    </div>
+                  )}
+                  {cameraPreview !== null && (
+                    <img src={cameraPreview} alt="Live OBS overhead camera preview"
+                      style={{ maxWidth: "100%" }} />
+                  )}
+                </div>
+              )}
               <div className="button-row">
                 <button
                   className="primary"
@@ -682,13 +762,82 @@ export function App() {
               </div>
               <button
                 className="primary"
-                disabled={busy}
+                disabled={busy || (state.questionnaireGate.pending !== null &&
+                  state.questionnaireGate.completedParticipantIds.length !==
+                    state.questionnaireGate.participantIds.length)}
                 onClick={() => void perform("/api/post-trial/complete")}
               >
                 Complete post-trial
               </button>
             </section>
           )}
+
+          {state.questionnaireGate.pending !== null && (
+            <section className="panel">
+              <p className="eyebrow">Questionnaire gate</p>
+              <h2>{state.questionnaireGate.pending.replaceAll("_", " ")}</h2>
+              <p>
+                Confirm each participant has submitted the form using their
+                participant ID. The dashboard records completion only, not answers.
+              </p>
+              {state.questionnaireGate.formUrl !== null && (
+                <p>
+                  <a
+                    href={state.questionnaireGate.formUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open configured Google Form
+                  </a>
+                </p>
+              )}
+              {state.questionnaireGate.formUrl === null && (
+                <p>No form link is configured for this questionnaire.</p>
+              )}
+              <div className="button-row">
+                {state.questionnaireGate.participantIds.map((participantId) => {
+                  const completed = state.questionnaireGate.completedParticipantIds.includes(
+                    participantId,
+                  );
+                  return (
+                    <button
+                      className={completed ? "ghost" : "secondary"}
+                      key={participantId}
+                      disabled={busy || completed}
+                      onClick={() =>
+                        void perform("/api/questionnaire/complete", {
+                          kind: state.questionnaireGate.pending,
+                          participantId,
+                        })
+                      }
+                    >
+                      {participantId}: {completed ? "Recorded" : "Mark submitted"}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {state.laptopState === "CONDITION_REVIEW" &&
+            actions.has("COMPLETE_CONDITION_REVIEW") && (
+              <section className="panel action-panel">
+                <div>
+                  <p className="eyebrow">Condition block</p>
+                  <h2>Complete condition review</h2>
+                  <p>Continue after both participants finish the block questionnaire.</p>
+                </div>
+                <button
+                  className="primary"
+                  disabled={busy || (state.questionnaireGate.pending !== null &&
+                    state.questionnaireGate.completedParticipantIds.length !==
+                      state.questionnaireGate.participantIds.length)}
+                  onClick={() => void perform("/api/condition-review/complete")}
+                >
+                  Continue
+                </button>
+              </section>
+            )}
 
           {state.laptopState === "RECOVERY_REQUIRED" && (
             <section className="panel recovery-panel">
@@ -796,19 +945,24 @@ export function App() {
                         Clean up Quest backup logs
                       </button>
                     )}
-                  <button
-                    className="primary"
-                    disabled={busy || state.exportValidation?.valid !== true}
-                    onClick={() =>
-                      setDialog({
-                        title: "Close completed session",
-                        endpoint: "/api/session/close",
-                        reasonRequired: true,
-                      })
-                    }
-                  >
-                    Close session
-                  </button>
+                  {actions.has("CLOSE_SESSION") && (
+                    <button
+                      className="primary"
+                      disabled={busy || state.exportValidation?.valid !== true ||
+                        (state.questionnaireGate.pending !== null &&
+                          state.questionnaireGate.completedParticipantIds.length !==
+                            state.questionnaireGate.participantIds.length)}
+                      onClick={() =>
+                        setDialog({
+                          title: "Close completed session",
+                          endpoint: "/api/session/close",
+                          reasonRequired: true,
+                        })
+                      }
+                    >
+                      Close session
+                    </button>
+                  )}
                 </div>
               )}
             </article>

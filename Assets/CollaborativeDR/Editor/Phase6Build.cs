@@ -25,7 +25,7 @@ namespace CollaborativeDR.Editor
         private const string KeyboardProfilePath =
             "Assets/CollaborativeDR/Configuration/KeyboardDiminishedRealityProfile.asset";
         private const string DefaultBuildPath =
-            "Builds/Android/CollaborativeDR-Phase6.apk";
+            "Builds/Android/CollaborativeDR-NewRoom-WhitePilot.apk";
 
         [MenuItem("Collaborative DR/Phase 6/Configure DR Masks")]
         public static void ConfigureDiminishedRealityMasks()
@@ -58,35 +58,18 @@ namespace CollaborativeDR.Editor
             material.SetFloat("_Contrast", 1f);
             material.SetFloat("_Opacity", 1f);
             material.SetFloat("_UseTexture", 0f);
-
-            DiminishedRealityTargetProfile tv = GetOrCreateProfile(TvProfilePath);
-            tv.Configure(
-                "TV",
-                DiminishedRealityRigAnchor.TvTagFrame,
-                // Experimental recessed wall-plane placement. At an
-                // approximately 1.30 m wall viewing distance, placing the mask
-                // another 0.07 m back requires 1.37 / 1.01 compensation.
-                new Vector3(0.034f, 0f, 0.07f),
-                Vector3.zero,
-                new Vector2(1.60f, 1.46f),
-                0.005f,
-                material,
-                Color.white);
-
+            // Target profiles own their measured geometry and appearance.
+            // Reconfiguring the scene must never restore the previous room's
+            // dimensions, offsets, or photo textures.
+            DiminishedRealityTargetProfile tv =
+                AssetDatabase.LoadAssetAtPath<DiminishedRealityTargetProfile>(TvProfilePath);
             DiminishedRealityTargetProfile keyboard =
-                GetOrCreateProfile(KeyboardProfilePath);
-            keyboard.Configure(
-                "KEYBOARD",
-                DiminishedRealityRigAnchor.KeyboardRig,
-                new Vector3(0f, 0f, 0f),
-                new Vector3(-90f, 0f, 0f),
-                // The oversized desk-flush plane covers the keyboard's
-                // projected silhouette when viewed from oblique participant
-                // angles, without reintroducing visible box geometry.
-                new Vector2(0.55f, 0.35f),
-                0.005f,
-                material,
-                Color.white);
+                AssetDatabase.LoadAssetAtPath<DiminishedRealityTargetProfile>(KeyboardProfilePath);
+            Require(tv != null, $"Missing TV profile: {TvProfilePath}");
+            Require(keyboard != null, $"Missing keyboard profile: {KeyboardProfilePath}");
+            Require(tv.ReplacementMaterial == material &&
+                    keyboard.ReplacementMaterial == material,
+                "Both DR profiles must reference the shared mask material.");
 
             GameObject runtime = scene.GetRootGameObjects()
                 .FirstOrDefault(root => root.name == RuntimeObjectName);
@@ -163,8 +146,8 @@ namespace CollaborativeDR.Editor
             Phase5Build.ValidateSixTagCalibration();
             Require(StudyProtocol.ProtocolVersion == "1.3.0",
                 "Phase 6 requires protocol 1.3.0.");
-            Require(StudyProtocol.AppBuildId == "cdr-phase6-dev-1",
-                "Phase 6 requires build ID cdr-phase6-dev-1.");
+            Require(StudyProtocol.AppBuildId == "cdr-newroom-white-dev-2",
+                "The surveyed new-room white pilot needs its distinct build ID.");
             Require(StudyProtocol.DrProfileVersion ==
                     DiminishedRealityTargetProfile.Phase6ProfileVersion,
                 "The protocol and Unity DR profile versions do not match.");
@@ -183,22 +166,22 @@ namespace CollaborativeDR.Editor
                 $"Missing Phase 6 keyboard profile: {KeyboardProfilePath}");
             tv.ValidateOrThrow();
             keyboard.ValidateOrThrow();
-
             Require(tv.TargetId == "TV" &&
                     tv.RigAnchor == DiminishedRealityRigAnchor.TvTagFrame &&
-                    Approximately(tv.OuterDimensionsMeters, new Vector2(1.60f, 1.46f)) &&
-                    Approximately(tv.LocalPositionMeters, new Vector3(0.034f, 0f, 0.07f)) &&
-                    Mathf.Approximately(tv.FeatherMeters, 0.005f),
-                "The TV profile no longer matches the locked Phase 6 placement values.");
+                    tv.ReplacementMaterial == material,
+                "The TV profile has the wrong identity, rig anchor, or material.");
             Require(keyboard.TargetId == "KEYBOARD" &&
                     keyboard.RigAnchor == DiminishedRealityRigAnchor.KeyboardRig &&
-                    Approximately(keyboard.OuterDimensionsMeters, new Vector2(0.55f, 0.35f)) &&
-                    Approximately(keyboard.LocalPositionMeters, Vector3.zero) &&
-                    Quaternion.Angle(
-                        keyboard.LocalRotation,
-                        Quaternion.Euler(-90f, 0f, 0f)) < 0.01f &&
-                    Mathf.Approximately(keyboard.FeatherMeters, 0.005f),
-                "The keyboard profile no longer matches the locked Phase 6 placement values.");
+                    keyboard.ReplacementMaterial == material,
+                "The keyboard profile has the wrong identity, rig anchor, or material.");
+            Require(!tv.PlacementPendingNewRoomSurvey || !tv.UseReplacementTexture,
+                "The pending new-room TV profile must use the white placeholder.");
+            Require(!keyboard.PlacementPendingNewRoomSurvey ||
+                    !keyboard.UseReplacementTexture,
+                "The pending new-room keyboard profile must use the white placeholder.");
+            Require(!tv.PlacementPendingNewRoomSurvey &&
+                    !keyboard.PlacementPendingNewRoomSurvey,
+                "Both new-room placements must be surveyed before this pilot build.");
 
             Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
             GameObject runtime = scene.GetRootGameObjects()
@@ -208,20 +191,6 @@ namespace CollaborativeDR.Editor
                 "Phase 6 runtime is missing DiminishedRealityManager.");
             Require(runtime.GetComponent<PassthroughSafetyController>() != null,
                 "Phase 6 runtime is missing PassthroughSafetyController.");
-        }
-
-        private static DiminishedRealityTargetProfile GetOrCreateProfile(string path)
-        {
-            DiminishedRealityTargetProfile profile =
-                AssetDatabase.LoadAssetAtPath<DiminishedRealityTargetProfile>(path);
-            if (profile != null)
-            {
-                return profile;
-            }
-
-            profile = ScriptableObject.CreateInstance<DiminishedRealityTargetProfile>();
-            AssetDatabase.CreateAsset(profile, path);
-            return profile;
         }
 
         private static void EnsureFolder(string path)
@@ -241,16 +210,6 @@ namespace CollaborativeDR.Editor
         private static T AddIfMissing<T>(GameObject target) where T : Component
         {
             return target.GetComponent<T>() ?? target.AddComponent<T>();
-        }
-
-        private static bool Approximately(Vector2 left, Vector2 right)
-        {
-            return Vector2.Distance(left, right) < 0.00001f;
-        }
-
-        private static bool Approximately(Vector3 left, Vector3 right)
-        {
-            return Vector3.Distance(left, right) < 0.00001f;
         }
 
         private static string GetCommandLineValue(string argumentName)

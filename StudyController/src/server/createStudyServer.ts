@@ -9,6 +9,7 @@ import express, {
 } from "express";
 import WebSocket, { WebSocketServer } from "ws";
 
+import { sha256CanonicalJson } from "../canonicalJson.js";
 import type { Clock } from "../clock.js";
 import type {
   EnrollmentRequest,
@@ -17,8 +18,14 @@ import type {
 import type {
   GuardedActionInput,
   PreflightKey,
+  QuestionnaireKind,
 } from "../runtimeTypes.js";
 import { SimulationController } from "../simulation/SimulationController.js";
+import {
+  ObsMediaController,
+  type MediaCapture,
+  type ObsMediaOptions,
+} from "../services/ObsMediaController.js";
 import { StudySessionManager } from "../services/StudySessionManager.js";
 
 export interface StudyServerOptions {
@@ -33,6 +40,10 @@ export interface StudyServerOptions {
   approvedQuestBuildId?: string;
   pairingCodeTtlMs?: number;
   drPreviewEnabled?: boolean;
+  questionnaireGateEnabled?: boolean;
+  questionnaireUrls?: Partial<Record<QuestionnaireKind, string>>;
+  obsOptions?: ObsMediaOptions;
+  obsMedia?: MediaCapture;
 }
 
 export interface RunningStudyServer {
@@ -58,6 +69,30 @@ export async function createStudyServer(
   options: StudyServerOptions,
 ): Promise<RunningStudyServer> {
   const dashboardSockets = new Set<WebSocket>();
+  if (options.obsOptions !== undefined && options.obsMedia !== undefined) {
+    throw new Error("Configure either OBS options or an injected media capture, not both.");
+  }
+  const obsMedia = options.obsMedia ??
+    (options.obsOptions === undefined ? null : new ObsMediaController(options.obsOptions));
+  const obsCaptureConfigurationSha256 = options.obsOptions === undefined
+    ? undefined
+    : sha256CanonicalJson(options.obsOptions.audioMode === "STEREO_RECEIVER"
+      ? {
+          cameraSource: options.obsOptions.cameraSource,
+          audioMode: options.obsOptions.audioMode,
+          receiverInput: options.obsOptions.receiverInput,
+          receiverTrack: options.obsOptions.receiverTrack,
+          participantAChannel: options.obsOptions.participantAChannel,
+          participantBChannel: options.obsOptions.participantBChannel,
+        }
+      : {
+          cameraSource: options.obsOptions.cameraSource,
+          audioMode: options.obsOptions.audioMode,
+          microphoneA: options.obsOptions.microphoneA,
+          microphoneB: options.obsOptions.microphoneB,
+          microphoneATrack: options.obsOptions.microphoneATrack,
+          microphoneBTrack: options.obsOptions.microphoneBTrack,
+        });
   let runningPort = options.port;
   const manager = new StudySessionManager({
     dataRoot: options.dataRoot,
@@ -76,6 +111,13 @@ export async function createStudyServer(
       ? {}
       : { pairingCodeTtlMs: options.pairingCodeTtlMs }),
     drPreviewEnabled: options.drPreviewEnabled === true,
+    questionnaireGateEnabled: options.questionnaireGateEnabled === true,
+    ...(options.questionnaireUrls === undefined
+      ? {}
+      : { questionnaireUrls: options.questionnaireUrls }),
+    ...(obsMedia === null ? {} : { obsMedia }),
+    ...(obsCaptureConfigurationSha256 === undefined
+      ? {} : { obsCaptureConfigurationSha256 }),
     onStateChanged: (state) => {
       const message = JSON.stringify({ type: "DASHBOARD_STATE", state });
       for (const socket of dashboardSockets) {
@@ -134,6 +176,31 @@ export async function createStudyServer(
     "/api/preflight/confirm",
     route(async (_request, response) => {
       response.json(await manager.confirmPreflight());
+    }),
+  );
+  app.post(
+    "/api/media/check",
+    route(async (_request, response) => {
+      response.json(await manager.checkMedia());
+    }),
+  );
+  app.get(
+    "/api/media/preview",
+    route(async (request, response) => {
+      const address = request.socket.remoteAddress ?? "";
+      if (!["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(address)) {
+        response.status(403).json({ error: "Camera preview is local-only." });
+        return;
+      }
+      response.json({ imageData: await manager.mediaPreview() });
+    }),
+  );
+  app.post(
+    "/api/media/recover",
+    route(async (request, response) => {
+      response.json(
+        await manager.recoverInterruptedRecording(request.body as GuardedActionInput),
+      );
     }),
   );
   app.post(
@@ -216,6 +283,24 @@ export async function createStudyServer(
     "/api/post-trial/complete",
     route(async (_request, response) => {
       response.json(await manager.completePostTrial());
+    }),
+  );
+  app.post(
+    "/api/questionnaire/complete",
+    route(async (request, response) => {
+      const body = request.body as {
+        kind: QuestionnaireKind;
+        participantId: string;
+      };
+      response.json(
+        await manager.recordQuestionnaireCompletion(body.kind, body.participantId),
+      );
+    }),
+  );
+  app.post(
+    "/api/condition-review/complete",
+    route(async (_request, response) => {
+      response.json(await manager.completeConditionReview());
     }),
   );
   app.post(
@@ -442,6 +527,7 @@ export async function createStudyServer(
     close: async () => {
       simulation?.stop();
       manager.shutdown();
+      await obsMedia?.close();
       for (const socket of dashboardSockets) {
         socket.close(1001, "Server shutting down.");
       }

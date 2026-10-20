@@ -26,10 +26,12 @@ namespace CollaborativeDR.DiminishedReality
         [SerializeField] private Vector3 localPositionMeters;
         [SerializeField] private Vector3 localEulerDegrees;
         [SerializeField] private Vector2 outerDimensionsMeters = new Vector2(0.55f, 0.35f);
+        [SerializeField] private bool placementPendingNewRoomSurvey;
 
         [Header("Replacement appearance")]
         [SerializeField] private Material replacementMaterial;
         [SerializeField] private Texture2D replacementTexture;
+        [SerializeField] private bool useReplacementTexture = true;
         [SerializeField, Min(0f)] private float featherMeters = 0.003f;
         [SerializeField, Range(0f, 2f)] private float brightness = 1f;
         [SerializeField, Range(0f, 2f)] private float contrast = 1f;
@@ -46,8 +48,10 @@ namespace CollaborativeDR.DiminishedReality
         public Vector3 LocalPositionMeters => localPositionMeters;
         public Quaternion LocalRotation => Quaternion.Euler(localEulerDegrees);
         public Vector2 OuterDimensionsMeters => outerDimensionsMeters;
+        public bool PlacementPendingNewRoomSurvey => placementPendingNewRoomSurvey;
         public Material ReplacementMaterial => replacementMaterial;
         public Texture2D ReplacementTexture => replacementTexture;
+        public bool UseReplacementTexture => useReplacementTexture && replacementTexture != null;
         public float FeatherMeters => featherMeters;
         public float Brightness => brightness;
         public float Contrast => contrast;
@@ -75,14 +79,18 @@ namespace CollaborativeDR.DiminishedReality
             outerDimensionsMeters = configuredOuterDimensionsMeters;
             featherMeters = configuredFeatherMeters;
             replacementMaterial = configuredMaterial;
-            replacementTexture = null;
-            brightness = 1f;
-            contrast = 1f;
+            // Geometry rebuilds must preserve the approved surface texture and
+            // pilot colour adjustments. Field initializers supply new defaults.
             tint = configuredTint;
             opacity = 1f;
             performanceTargetFps = configuredPerformanceTargetFps;
             debugColour = configuredTargetId == "TV" ? Color.magenta : Color.cyan;
             ValidateOrThrow();
+        }
+
+        public void SetReplacementTexture(Texture2D texture)
+        {
+            replacementTexture = texture;
         }
 
         public void ValidateOrThrow()

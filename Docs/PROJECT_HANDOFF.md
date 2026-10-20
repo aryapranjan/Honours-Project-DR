@@ -269,7 +269,8 @@ foundation:
 
 - Final room seating
 - Surveyed TV, keyboard, tag, and workspace transforms
-- Exact microphone models and audio-interface topology
+- Exact microphone model, receiver output format, and participant-to-channel
+  mapping on the selected hardware
 - Questionnaire delivery hardware
 - University-approved archive location and retention period
 - Authorized research-team access
@@ -453,31 +454,27 @@ foundation:
   only during calibration, and is rejected during trials. It is omitted from
   the normal study server unless explicitly enabled for placement testing.
 - Unity Phase 6 configuration compiled and serialized successfully. The latest
-  Unity EditMode result is `21/21` passed in
-  `Logs/Phase6OversizedKeyboardEditModeResults-20260902.xml`, including calibrated
-  TV composition, recessed-plane perspective compensation, the enlarged
-  runtime desk plane, and the `NO_DR` no-geometry invariant.
-- The fine-tuned `Builds/Android/CollaborativeDR-Phase6.apk` built at
-  `2026-09-02 23:07:29 +0930` (`101,647,444` bytes; SHA-256
-  `f6301f2329834307da6c48c47c8ffb275c69f64fffd4fb682e60ec68be4dc55e`).
-  This recessed-plane revision is not yet installed because the post-build
-  `hzdb` device check returned no connected Quest. The preceding surface-plane
-  revision had installed non-destructively on Quest 3 `2G0YC1ZF9Z03HD`. Its
-  clean off-head cold launch completed in `228 ms`, and the eight-second `hzdb`
-  scan found no fatal
-  exception, ANR, native crash, or package-attributable crash. The required
-  headset-camera and Internet permissions are present and headset-camera access
-  is granted. Meta Home resumes when the off-head wake interval ends, so on-head
-  visual confirmation remains pending.
+  Unity EditMode result is `24/24` passed in
+  `Logs/Phase6SurfaceFinalEditModeResults-20260916.xml`, including texture
+  assignment/import checks, colour-setting persistence, target switching,
+  calibrated geometry, and `NO_DR` invariants.
+- The photo-textured `Builds/Android/CollaborativeDR-Phase6.apk` built at
+  `2026-09-16 17:47:13 +0930` (`101,653,342` bytes; SHA-256
+  `f3043a25c26002c0a7c6ec70526dafc72d2183b8cf7a60cbefb6fb2f174d3860`).
+  It installed non-destructively on Quest 3 `2G0YC1ZF9Z03HD`, preserving app
+  data. Its off-head cold launch completed in `199 ms`, and the eight-second
+  `hzdb` scan found no fatal exception, ANR, native crash, or
+  package-attributable crash. Horizon's clear activity remained focused while
+  the headset was off-head, so on-head visual confirmation remains pending.
 - Phase 6 is not physically closed: the APK must be installed and both targets
   checked on-head for coverage, both-eye artifacts, head-motion stability, and
-  sustained 72 FPS. The second physical Quest repeat and final photographed
-  wall/desk appearance tuning remain pending.
+  sustained 72 FPS. The second physical Quest repeat and final on-head
+  wall/desk colour tuning remain pending.
 
 The Phase 4 calibration result was an explicitly labelled test-only override
 used to exercise the networking handshake. Phase 5 now carries real derived
 six-tag calibration reports, and Phase 6 consumes the accepted rig transforms
-for white pilot masks. Final visual appearance remains a physical-pilot task.
+for photo-textured pilot masks. Final visual appearance remains a physical-pilot task.
 
 See:
 
@@ -486,31 +483,71 @@ See:
 - `Docs/Development/Phase5Implementation.md`
 - `Docs/Development/Phase6Implementation.md`
 
-## Immediate Next Step
+## Phase 7–8 software preparation and immediate next step
 
-Complete the Phase 6 one-Quest placement pilot while retaining the remaining
-Phase 5 evidence gates:
+The room-independent Phase 7 controller path now includes OBS WebSocket media
+checks/recording, questionnaire completion gates, and artifact checksums. The
+Phase 8 mock fault suite covers recording failure, silent/clipping microphones,
+and low storage alongside the earlier networking and calibration tests. The
+audio configuration now supports the selected two-transmitter, one-receiver
+setup as one stereo OBS source, with per-participant left/right level checks;
+the exact microphone model and channel mapping await a real pilot. The
+controller's `npm run verify` passed 45/45 tests and both production builds on
+2026-10-06. See `Docs/Development/Phase7And8Implementation.md` and
+`StudyController/README.md`. This is implementation evidence, not a Phase 7 or
+8 physical exit or a release freeze.
 
-1. Build/install `cdr-phase6-dev-1` through `hzdb`, calibrate, then use the
-   guarded preview to inspect TV and keyboard Prepare/Show/Reveal/Hide states.
-2. Record mask coverage, both-eye appearance, head-motion stability, and the
-   provisional sustained 72 FPS result. Repeat the physical Quest as Director
-   and Builder with the simulator occupying only the other slot.
-3. Confirm and record calibration-outline alignment; repeat stability and the
-   three-of-four-TV-tag test. Fix the known clock issue before formal timestamped
-   evidence capture.
-4. Repeat calibration compatibility and mask placement with two physical Quest
-   headsets when the
-   second device becomes available. Do not close Phase 5 from simulator
-   evidence.
+The user has moved to a new room and supplied initial photos and measurements;
+room scans may follow. Keep `tagStandard41h12`, tag IDs 1–6, and the tag-size
+configuration. The fresh Quest calibration must derive all six positions in
+the new room; do not reuse former room transforms. The current Phase 5/6
+measurements above are retained as historical pilot evidence, except that the
+researcher confirmed the TV/keyboard-to-tag relationships remain the same.
 
-Continue all install, launch, log, screenshot, and recovery work through the
-repository's `hzdb` workflow. Do not use a destructive uninstall while a local
-backup log may still require export.
+On 2026-10-20, both mask profiles were first switched to a plain white
+placeholder. In the initial dev-1 build, old dimensions and offsets remained
+serialized only as historical values and a pending-survey guard blocked DR.
+The Phase 6 configurator no longer restores the old geometry or photo
+textures. The first development build ID was `cdr-newroom-white-dev-1`, with a
+separate APK output path. The controller
+verification passed, Unity's Validate DR Masks menu passed in the open editor,
+and `Builds/Android/CollaborativeDR-NewRoom-WhitePlaceholder.apk` built on
+2026-10-20 (`101,650,231` bytes; SHA-256
+`5a9773a1c2560087f73257c79088534fa5e6fab8bae64177c202c5cd1491443d`).
+The researcher then confirmed `1.50 m` seated eye-to-wall distance, `0.29 m`
+TV front-to-wall depth, unchanged target/tag relationships, and the
+`1.673 x 1.075 m` TV-tag rectangle. Four new-room photos show the arrangement.
+The TV white quad was recalculated on the new wall tag plane at
+`1.52 x 0.90 m`, local `(0.015, 0.020, 0) m`; the keyboard white quad remains
+`0.55 x 0.35 m` in its confirmed unchanged tag-relative desk placement. Both
+pending-survey flags were cleared for a **provisional one-Quest white-mask
+pilot**. The current dev-2 build ID is `cdr-newroom-white-dev-2` and the APK is
+`Builds/Android/CollaborativeDR-NewRoom-WhitePilot.apk` (`101,650,237` bytes;
+SHA-256
+`2c44d96da847052dff8c6f90d4dbd305ba4804660f7a80ea62ba2dfa79ad43a7`).
+StudyController verification passed 45/45; Unity compiled/validated during
+the build. Unity EditMode tests and new-room Quest/OBS checks have not run.
+See `Docs/Development/NewRoomPhotoSurvey-20261020.md` for assumptions and
+`Docs/Development/NewRoomTestReadiness.md` for the offline test sequence.
 
-Do not add OBS automation or participant data collection yet; those remain
-Phase 7 work. Do not treat the current white masks or one-Quest/simulator run as
-final visual or two-headset validation.
+For the physical pilot:
+
+1. Complete the fresh six-tag calibration, physical distractor survey, and
+   TV/keyboard mask tuning in the new room. Inspect both eyes, oblique views,
+   head-motion parallax, and sustained frame rate.
+2. Repeat calibration, DR placement, networking, and trial workflow with both
+   physical Quests. Keep the one-Quest/simulator run labelled as partial.
+3. Configure real OBS and the approved Google Form links; play a pilot MKV to
+   verify camera, separate left/right audio from both transmitters, their
+   participant mapping, and trial-marker sync. Run the
+   Phase 8 physical fault matrix and full mock dyad session.
+4. Resolve ethics and University storage/retention decisions, document pilot
+   thresholds, then freeze and archive the release artifacts together.
+
+Continue all Quest install, launch, log, screenshot, and recovery work through
+the repository's `hzdb` workflow. Do not use a destructive uninstall while a
+local backup log may still require export. Do not collect participant data or
+claim a frozen release from the current mock tests.
 
 Future Codex instruction:
 

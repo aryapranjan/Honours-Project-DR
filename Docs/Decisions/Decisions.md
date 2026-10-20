@@ -101,11 +101,10 @@ defaults and unresolved deployment choices.
 - TV tag order follows the confirmed final-room placement: `4` top-left, `5`
   top-right, `6` bottom-right, and `3` bottom-left. Calibration may remain valid
   with any three of the four TV tags.
-- Preliminary centre-to-centre TV-tag spacing is approximately `1.673 m`
-  horizontally (`4-5` and `3-6`) and `1.075 m` vertically (`3-4` and `5-6`).
-  The approximate seated participant-to-wall distance is `1.30 m`; these room
-  measurements must be rechecked during the physical pilot before threshold
-  freeze.
+- The researcher confirmed centre-to-centre TV-tag spacing in the new room is
+  `1.673 m` horizontally (`4-5` and `3-6`) and `1.075 m` vertically (`3-4` and
+  `5-6`). The normal seated eye-to-TV-wall distance is `1.50 m`. A fresh Quest
+  calibration must still verify the mounted tag poses before threshold freeze.
 - Calibration is one dashboard-triggered six-second attempt collected by both
   headsets. Detection outlines and quality metrics are calibration-only; the
   participant waiting view returns after the attempt.
@@ -131,16 +130,24 @@ defaults and unresolved deployment choices.
 - Phase 6 uses one generic, profile-driven DR manager for both targets. Both
   Quests use the same geometry and appearance profile; per-headset adjustment
   is diagnostic only and is not silently retained for study trials.
-- The pilot appearance is a full-opacity white, unlit, texture-ready mask. No
-  dynamic Quest-camera texture capture is used. Photographed wall/desk
-  materials will be added and locked after the physical visual pilot.
-- The current TV pilot intentionally tests a recessed wall replacement plane.
-  The panel-to-wall depth is `0.29 m`, the approximate viewing distance to the
-  wall is `1.30 m`, and visual tuning places the plane another `0.07 m` behind
-  the tag plane. The provisional perspective factor is therefore
-  `1.37 / (1.30 - 0.29)`. The rounded mask is `1.60 x 1.46 m`, at local
-  `X=+0.034 m`, `Z=+0.07 m`. This remains experimental because participant head
-  movement may expose parallax. The `0.005 m` feather is inside the edge.
+- The pilot appearance uses full-opacity unlit wall/desk surface textures
+  derived from the researcher's external photographs, with approved cleanup
+  of tags, marks and baked shadows. No dynamic Quest-camera texture capture is
+  used. Colour matching remains provisional until the physical visual pilot;
+  both headsets must use the same approved appearance settings.
+- For the new room, both targets temporarily render the shader's plain white
+  fallback. The former room's photos remain archived in the profiles but are
+  disabled. The photographed-room local placements are provisional and require
+  fresh six-tag calibration before DR preparation. Configuration/build steps
+  must not restore former-room geometry.
+- The former-room TV pilot tested a recessed wall plane: `1.60 x 1.46 m` at
+  local `X=+0.034 m`, `Z=+0.07 m` for a presumed `1.30 m` viewing distance.
+  The new-room white pilot uses the tag wall plane at local
+  `(0.015, 0.020, 0) m` and `1.52 x 0.90 m` coverage, estimated from the new
+  photos, `1.50 m` eye-to-wall distance, confirmed `0.29 m` TV protrusion, and
+  unchanged TV/tag relationship. This is
+  an alignment experiment, not a natural appearance or Phase 6 exit; head
+  movement may expose parallax. The `0.005 m` feather remains inside the edge.
 - The keyboard pilot uses one oversized horizontal `0.55 x 0.35 m` plane at the
   calibrated desk surface (`Y=0 m`). Its larger footprint covers the raised-key
   silhouette seen from oblique angles. No box or vertical faces remain. The
@@ -152,8 +159,11 @@ defaults and unresolved deployment choices.
   available only during calibration, and omitted from normal study operation.
   Participant controllers expose no DR toggle.
 - The provisional performance gate is sustained `72 FPS` and remains subject
-  to the physical pilot. Phase 6 development identity is protocol `1.3.0`, APK
-  build `cdr-phase6-dev-1`, and profile `PHASE6_TEST_V1`.
+  to the physical pilot. The former-room Phase 6 artifact used protocol
+  `1.3.0`, APK build `cdr-phase6-dev-1`, and profile `PHASE6_TEST_V1`. The
+  first new-room white-placeholder dry-run build was
+  `cdr-newroom-white-dev-1`. The provisional photographed-room white-mask
+  pilot uses `cdr-newroom-white-dev-2` and requires fresh tag calibration.
 
 ### Control architecture
 
@@ -288,7 +298,8 @@ controller events to the study dataset.
 ### Media and data
 
 - A USB overhead camera is connected to the MacBook and controlled by OBS.
-- Two external participant microphones are recorded by OBS.
+- Each participant uses an external wireless transmitter; one receiver feeds
+  their separate left/right audio channels into OBS.
 - The external encrypted SSD is used as configurable capture storage.
 - Participant names do not appear in study-data paths or filenames.
 - Audio and video are synchronized to laptop trial markers.
@@ -364,7 +375,8 @@ Do not infer these values during implementation:
 - Exact room geometry and surveyed transforms
 - Exact TV and keyboard replacement mesh dimensions
 - Exact microphone models
-- One dual-channel interface versus two independent USB microphones
+- Actual receiver output format and transmitter-to-channel mapping, to be
+  confirmed with the selected hardware and a pilot recording
 - Questionnaire delivery devices
 - Exact participant sample size and power-analysis result
 - University-approved archive destination

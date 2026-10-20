@@ -500,14 +500,18 @@ profile assets, calibrated TV/keyboard placement, a texture-ready feathered
 unlit mask, explicit lifecycle commands, actual-state reports, debug bounds,
 and clear-passthrough fail-safe behavior. Protocol `1.3.0` and build
 `cdr-phase6-dev-1` add a researcher preview that is disabled by default and
-unavailable during trials. Controller verification passes `41/41`; Unity
-The latest Phase 6 EditMode verification passes `21/21`, including the
+unavailable during trials. Controller verification passes `41/41`.
+The initial Phase 6 EditMode verification passed `21/21`, including the
 perspective-compensated recessed TV plane and enlarged keyboard desk plane.
 
-The software implementation does not close the physical exit gate. The white
-pilot masks must still be installed and inspected on the Quest for coverage,
-both-eye artifacts, head-motion stability, and sustained 72 FPS. Photographed
-wall/desk appearance tuning and the two-physical-Quest repeat remain pending.
+The masks now use photo-derived wall/desk textures; see the current build/test
+evidence in the Phase 6 implementation document. The current surface revision
+passes `24/24` EditMode tests and is installed on the available Quest 3. The
+software implementation
+does not close the physical exit gate. The textured pilot masks must be
+installed and inspected on the Quest for coverage, colour matching, both-eye
+artifacts, head-motion stability, and sustained 72 FPS. Appearance tuning and
+the two-physical-Quest repeat remain pending.
 See `Docs/Development/Phase6Implementation.md`.
 
 ## Phase 7: Trial Workflow, Stimuli, OBS, Questionnaires, and Export

@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
@@ -23,6 +23,11 @@ import {
 } from "../src/contracts.js";
 import type { DashboardState } from "../src/runtimeTypes.js";
 import { createDeterministicCalibrationReport } from "../src/simulation/simulatedCalibrationReport.js";
+import type {
+  MediaCapture,
+  MediaReadiness,
+  ObsMediaOptions,
+} from "../src/services/ObsMediaController.js";
 import {
   createStudyServer,
   type RunningStudyServer,
@@ -60,6 +65,9 @@ async function startServer(
   dataRoot: string,
   clock?: Clock,
   drPreviewEnabled = false,
+  questionnaireGateEnabled = false,
+  obsMedia?: MediaCapture,
+  obsOptions?: ObsMediaOptions,
 ): Promise<RunningStudyServer> {
   const server = await createStudyServer({
     host: "127.0.0.1",
@@ -69,6 +77,9 @@ async function startServer(
     dashboardDistPath: path.join(dataRoot, "missing-dashboard"),
     startLeadMs: clock === undefined ? 5 : 0,
     drPreviewEnabled,
+    questionnaireGateEnabled,
+    ...(obsMedia === undefined ? {} : { obsMedia }),
+    ...(obsOptions === undefined ? {} : { obsOptions }),
     ...(clock === undefined ? {} : { clock }),
   });
   runningServers.push(server);
@@ -123,7 +134,16 @@ async function runPreflightAndStart(
     "storageReady",
     "physicalDistractorConfirmed",
   ]) {
+    if (
+      (key === "recordingReady" || key === "storageReady") &&
+      server.manager.getDashboardState().media.mode === "OBS"
+    ) {
+      continue;
+    }
     await request(server, "/api/preflight/item", { key, value: true });
+  }
+  if (server.manager.getDashboardState().media.mode === "OBS") {
+    await request(server, "/api/media/check", {});
   }
   await request(server, "/api/preflight/confirm", {});
   await request(server, "/api/calibration/start", {});
@@ -458,6 +478,287 @@ function expectQuestConnectionRejected(url: string): Promise<void> {
 }
 
 describe("Phase 4 networking foundation", () => {
+  it("rejects a changed receiver channel assignment when restoring a session", async () => {
+    const dataRoot = await mkdtemp(path.join(tmpdir(), "cdr-receiver-policy-"));
+    temporaryDirectories.push(dataRoot);
+    const obsOptions: ObsMediaOptions = {
+      url: "ws://127.0.0.1:4455",
+      password: "local-test-password",
+      cameraSource: "Overhead Camera",
+      audioMode: "STEREO_RECEIVER",
+      receiverInput: "Participant Receiver",
+      receiverTrack: 2,
+      participantAChannel: "LEFT",
+      participantBChannel: "RIGHT",
+    };
+    const server = await startServer(dataRoot, undefined, false, false, undefined, obsOptions);
+    await request(server, "/api/session", {
+      pairId: "PAIR-001",
+      participantAId: "P001-A",
+      participantBId: "P001-B",
+    });
+    await server.close();
+    runningServers.splice(runningServers.indexOf(server), 1);
+    await expect(startServer(dataRoot, undefined, false, false, undefined, {
+      ...obsOptions,
+      participantAChannel: "RIGHT",
+      participantBChannel: "LEFT",
+    })).rejects.toThrow("media/questionnaire policy differs");
+    const restored = await startServer(dataRoot, undefined, false, false, undefined, {
+      ...obsOptions,
+      password: "rotated-local-password",
+    });
+    expect(restored.manager.getDashboardState().session?.config.pairId).toBe("PAIR-001");
+  });
+  it(
+    "recovers OBS media after a server restart and invalidates a scored trial on recording failure",
+    async () => {
+      const dataRoot = await mkdtemp(path.join(tmpdir(), "cdr-media-flow-"));
+      temporaryDirectories.push(dataRoot);
+      let activeTrial: string | null = null;
+      let mediaDirectory = "";
+      let stopFails = false;
+      const media: MediaCapture = {
+        async inspect(sessionDirectory): Promise<MediaReadiness> {
+          return {
+            mode: "OBS",
+            checkedAtUtc: new Date().toISOString(),
+            ready: true,
+            cameraSource: "Overhead Camera",
+            cameraActive: true,
+            microphones: [
+              { participant: "A", inputName: "Mic A", channel: null, track: 2, peakDbfs: -18, sampleCount: 5, muted: false, issue: null },
+              { participant: "B", inputName: "Mic B", channel: null, track: 3, peakDbfs: -20, sampleCount: 5, muted: false, issue: null },
+            ],
+            availableBytes: 10 * 1024 ** 3,
+            storageReady: true,
+            recordDirectory: path.join(sessionDirectory, "media"),
+            issues: [],
+          };
+        },
+        async cameraPreview() { return "data:image/jpeg;base64,AAAA"; },
+        async start(trialId, sessionDirectory) {
+          activeTrial = trialId;
+          mediaDirectory = path.join(sessionDirectory, "media");
+          await mkdir(mediaDirectory, { recursive: true });
+        },
+        async stop(trialId) {
+          if (stopFails) throw new Error("Injected OBS output failure");
+          if (activeTrial !== trialId) throw new Error("Wrong active trial");
+          const relativePath = path.join("media", `PAIR-001_${trialId}.mkv`);
+          const bytes = Buffer.from(`recording for ${trialId}`);
+          await writeFile(path.join(dataRoot, "PAIR-001", relativePath), bytes);
+          activeTrial = null;
+          return {
+            trialId,
+            relativePath,
+            bytes: bytes.length,
+            sha256: createHash("sha256").update(bytes).digest("hex"),
+            recordedAtUtc: new Date().toISOString(),
+          };
+        },
+        async recover(trialId) { return media.stop(trialId); },
+        isRecordingTrial(trialId) { return activeTrial === trialId; },
+        async close() {},
+      };
+      const server = await startServer(dataRoot, undefined, false, false, media);
+      let state = await startPracticeTrial(server);
+      expect(state.media.recordingTrialId).toBe("PRACTICE-01");
+      await server.close();
+      runningServers.splice(runningServers.indexOf(server), 1);
+      const restored = await startServer(dataRoot, undefined, false, false, media);
+      state = restored.manager.getDashboardState();
+      expect(state.laptopState).toBe("RECOVERY_REQUIRED");
+      expect(state.media.interruptedRecordingTrialId).toBe("PRACTICE-01");
+      await expect(request(restored, "/api/recovery/resolve", {
+        outcome: "TECHNICAL_INVALID",
+        confirmed: true,
+        reason: "Server restart fault injection.",
+      })).rejects.toThrow("Recover the interrupted OBS recording");
+      state = await request(restored, "/api/media/recover", {
+        confirmed: true,
+        reason: "Stop recording after server restart.",
+      });
+      expect(state.media.interruptedRecordingTrialId).toBeNull();
+      state = await request(restored, "/api/recovery/resolve", {
+        outcome: "TECHNICAL_INVALID",
+        confirmed: true,
+        reason: "Server restart fault injection.",
+      });
+      expect(state.media.artifacts).toHaveLength(1);
+      expect(state.media.artifacts[0]?.trialId).toBe("PRACTICE-01");
+      const practiceExport = await request<{ valid: boolean }>(
+        restored, "/api/export/validate", {},
+      );
+      expect(practiceExport.valid).toBe(true);
+      await request(restored, "/api/simulation/start", {});
+      await runPreflightAndStart(restored);
+      stopFails = true;
+      state = await request(restored, "/api/trial/submission", {
+        runtimeDecision: "CORRECT",
+      });
+      expect(state.currentTrial?.outcome).toBe("TECHNICAL_INVALID");
+      expect(state.faults.some((fault) => fault.source === "OBS")).toBe(true);
+      const brokenExport = await request<{ valid: boolean; issues: string[] }>(
+        restored, "/api/export/validate", {},
+      );
+      expect(brokenExport.valid).toBe(false);
+      expect(brokenExport.issues.join(" ")).toContain("SCORED-01 has no OBS media artifact");
+    },
+    25_000,
+  );
+  it(
+    "requires each participant's scored-trial and condition form and restores confirmations after restart",
+    async () => {
+      const dataRoot = await mkdtemp(path.join(tmpdir(), "cdr-forms-"));
+      temporaryDirectories.push(dataRoot);
+      const server = await startServer(dataRoot, undefined, false, true);
+      await request(server, "/api/session", {
+        pairId: "PAIR-001",
+        participantAId: "P001-A",
+        participantBId: "P001-B",
+      });
+      await request(server, "/api/simulation/start", {});
+      await expect(request(server, "/api/preflight/begin", {})).rejects.toThrow(
+        "PRE_STUDY questionnaire completion is missing",
+      );
+      for (const participantId of ["P001-A", "P001-B"]) {
+        await request(server, "/api/questionnaire/complete", {
+          kind: "PRE_STUDY",
+          participantId,
+        });
+      }
+      await runPreflightAndStart(server, true);
+      await request(server, "/api/trial/submission", {
+        runtimeDecision: "CORRECT",
+      });
+      let state = await request<DashboardState>(
+        server,
+        "/api/post-trial/complete",
+        {},
+      );
+      expect(state.questionnaireGate.pending).toBeNull();
+      await runPreflightAndStart(server);
+      state = await request(server, "/api/trial/submission", {
+        runtimeDecision: "CORRECT",
+      });
+      expect(state.questionnaireGate.pending).toBe("POST_TRIAL");
+      await expect(request(server, "/api/post-trial/complete", {})).rejects.toThrow(
+        "POST_TRIAL questionnaire completion is missing",
+      );
+      await request(server, "/api/questionnaire/complete", {
+        kind: "POST_TRIAL",
+        participantId: "P001-A",
+      });
+      await server.close();
+      runningServers.splice(runningServers.indexOf(server), 1);
+
+      await expect(startServer(dataRoot)).rejects.toThrow(
+        "media/questionnaire policy differs",
+      );
+
+      const restored = await startServer(dataRoot, undefined, false, true);
+      state = restored.manager.getDashboardState();
+      expect(state.questionnaireGate.completedParticipantIds).toEqual(["P001-A"]);
+      await request(restored, "/api/questionnaire/complete", {
+        kind: "POST_TRIAL",
+        participantId: "P001-B",
+      });
+      state = await request(restored, "/api/post-trial/complete", {});
+      expect(state.laptopState).toBe("PREFLIGHT");
+      await request(restored, "/api/simulation/start", {});
+      await runPreflightAndStart(restored);
+      await request(restored, "/api/trial/submission", {
+        runtimeDecision: "CORRECT",
+      });
+      for (const participantId of ["P001-A", "P001-B"]) {
+        await request(restored, "/api/questionnaire/complete", {
+          kind: "POST_TRIAL",
+          participantId,
+        });
+      }
+      state = await request(restored, "/api/post-trial/complete", {});
+      expect(state.laptopState).toBe("CONDITION_REVIEW");
+      expect(state.questionnaireGate.pending).toBe("POST_CONDITION");
+      await expect(request(restored, "/api/preflight/begin", {})).rejects.toThrow(
+        "Complete condition review",
+      );
+      await expect(
+        request(restored, "/api/condition-review/complete", {}),
+      ).rejects.toThrow("POST_CONDITION questionnaire completion is missing");
+      for (const participantId of ["P001-A", "P001-B"]) {
+        await request(restored, "/api/questionnaire/complete", {
+          kind: "POST_CONDITION",
+          participantId,
+        });
+      }
+      state = await request(restored, "/api/condition-review/complete", {});
+      expect(state.laptopState).toBe("PREFLIGHT");
+      for (let scored = 3; scored <= 6; scored += 1) {
+        state = await runPreflightAndStart(restored);
+        expect(state.currentTrial?.definition.trialId).toBe(
+          `SCORED-${String(scored).padStart(2, "0")}`,
+        );
+        await request(restored, "/api/trial/submission", {
+          runtimeDecision: "CORRECT",
+        });
+        for (const participantId of ["P001-A", "P001-B"]) {
+          await request(restored, "/api/questionnaire/complete", {
+            kind: "POST_TRIAL",
+            participantId,
+          });
+        }
+        state = await request(restored, "/api/post-trial/complete", {});
+        if (state.laptopState === "CONDITION_REVIEW") {
+          for (const participantId of ["P001-A", "P001-B"]) {
+            await request(restored, "/api/questionnaire/complete", {
+              kind: "POST_CONDITION",
+              participantId,
+            });
+          }
+          state = await request(restored, "/api/condition-review/complete", {});
+        }
+      }
+      expect(state.laptopState).toBe("SESSION_COMPLETE");
+      expect(state.questionnaireGate.pending).toBe("POST_SESSION");
+      const beforeFinal = await request<{ valid: boolean; issues: string[] }>(
+        restored,
+        "/api/export/validate",
+        {},
+      );
+      expect(beforeFinal.valid).toBe(false);
+      expect(beforeFinal.issues.join(" ")).toContain("POST_SESSION questionnaire completion");
+      for (const participantId of ["P001-A", "P001-B"]) {
+        await request(restored, "/api/questionnaire/complete", {
+          kind: "POST_SESSION",
+          participantId,
+        });
+      }
+      const afterFinal = await request<{ valid: boolean }>(
+        restored,
+        "/api/export/validate",
+        {},
+      );
+      expect(afterFinal.valid).toBe(true);
+      state = await request(restored, "/api/session/close", {
+        confirmed: true,
+        reason: "Completed mock session.",
+      });
+      expect(state.laptopState).toBe("SESSION_COMPLETE");
+      expect(state.session?.closed).toBe(true);
+      await expect(request(restored, "/api/session/close", {
+        confirmed: true,
+        reason: "Duplicate close attempt.",
+      })).rejects.toThrow("already been closed");
+      const manifest = JSON.parse(await readFile(
+        path.join(dataRoot, "PAIR-001", "artifact-manifest.json"),
+        "utf8",
+      )) as { mediaRequired: boolean; issues: string[] };
+      expect(manifest.mediaRequired).toBe(false);
+      expect(manifest.issues).toEqual([]);
+    },
+    30_000,
+  );
   it(
     "enrolls a physical Quest beside one slot simulator, gates recovery, and cleans logs only after a valid export",
     async () => {
@@ -493,7 +794,7 @@ describe("Phase 4 networking foundation", () => {
           pairingCode: pairing.code,
           clientInstanceId: "physical-quest-install-0001",
           protocolVersion: PROTOCOL_VERSION,
-          appBuildId: "cdr-phase6-dev-1",
+          appBuildId: "cdr-newroom-white-dev-2",
         },
       );
       expect(Object.keys(enrollment).sort()).toEqual([
@@ -510,7 +811,7 @@ describe("Phase 4 networking foundation", () => {
         deviceId: "QUEST_A",
         participantId: "P001-A",
         protocolVersion: "1.3.0",
-        approvedQuestBuildId: "cdr-phase6-dev-1",
+        approvedQuestBuildId: "cdr-newroom-white-dev-2",
       });
       await expectQuestConnectionRejected(enrollment.websocketUrl);
 
@@ -531,7 +832,7 @@ describe("Phase 4 networking foundation", () => {
       );
       expect(state.serverConnection).toMatchObject({
         bindHost: "127.0.0.1",
-        approvedQuestBuildId: "cdr-phase6-dev-1",
+        approvedQuestBuildId: "cdr-newroom-white-dev-2",
         protocolVersion: "1.3.0",
       });
       expect(state.serverConnection.advertisedWebSocketUrl).toBe(
@@ -687,7 +988,7 @@ describe("Phase 5 calibration reports", () => {
           pairingCode: pairing.code,
           clientInstanceId: `physical-${deviceId.toLowerCase()}-phase5`,
           protocolVersion: PROTOCOL_VERSION,
-          appBuildId: "cdr-phase6-dev-1",
+          appBuildId: "cdr-newroom-white-dev-2",
         },
       );
       connections.push(

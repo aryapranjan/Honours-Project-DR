@@ -94,8 +94,8 @@ the local Node.js server.
    assigned to either participant without rebuilding the APK.
 
 Both clients must share the protocol major version and exactly match the
-approved build identifier. The active `cdr-phase6-dev-1` identifier is for
-development and physical pilot testing only.
+approved build identifier. The current `cdr-newroom-white-dev-2` identifier is
+for development and the new-room white-mask pilot only.
 
 ### Physical study layer
 
@@ -105,9 +105,9 @@ development and physical pilot testing only.
   `+Z` points from participants toward the TV
 - TV AprilTags `3-6`, arranged as `4` top-left, `5` top-right, `6`
   bottom-right, and `3` bottom-left outside the diminished region
-- Preliminary TV-tag centre rectangle approximately `1.673 m × 1.075 m`, with
-  an approximate seated participant-to-wall distance of `1.30 m`; pilot
-  remeasurement remains required
+- New-room TV-tag centre rectangle `1.673 m × 1.075 m` and seated eye-to-wall
+  distance `1.50 m` as confirmed by the researcher; live tag-pose verification
+  remains required
 - Fixed TV, RGB keyboard, measured reference geometry, and room lighting
 - Private printed target card for the Director
 - Standardized physical tangram pieces and workspace
@@ -268,9 +268,13 @@ skipped, from `2026-08-11 07:31:09Z` to `07:31:10Z`. It covers the transparent
 camera-clear and mobile right-controller regression assertions. Protocol
 `1.1.0`, schema `1.4.0`, and development build ID `cdr-phase4-dev-1` identify
 the verified Phase 4 artifact. The Phase 5 calibration artifact used protocol
-`1.2.0` and build `cdr-phase5-dev-3`. The active Phase 6 implementation uses
-protocol `1.3.0`, schema `1.4.0`, development build ID
-`cdr-phase6-dev-1`, and DR profile `PHASE6_TEST_V1`.
+`1.2.0` and build `cdr-phase5-dev-3`. The former-room Phase 6 artifact used
+protocol `1.3.0`, schema `1.4.0`, development build ID `cdr-phase6-dev-1`,
+and DR profile `PHASE6_TEST_V1`. The first new-room white-placeholder build
+used `cdr-newroom-white-dev-1` and blocked placement pending survey. The
+photographed-room white-mask pilot uses `cdr-newroom-white-dev-2` with the same
+protocol and profile. Its local geometry is provisional; the room transform
+comes from fresh calibration.
 
 The Phase 4 readiness/calibration response was deliberately marked as a
 test-only override. Protocol `1.2.0` replaced it with strict six-tag calibration

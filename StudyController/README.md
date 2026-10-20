@@ -1,9 +1,7 @@
 # Collaborative DR Study Controller
 
-This folder contains the Phase 2 contracts, Phase 3 laptop-authoritative
-controller, Phase 4 Quest-networking foundation, Phase 5 calibration path, and
-Phase 6 diminished-reality control/reporting path for the Collaborative
-Diminished Reality study.
+This folder contains the laptop-authoritative controller through the Phase 7
+implementation path. Phase 8 room and device validation is still open.
 
 ## Scope
 
@@ -17,6 +15,11 @@ Included:
 - pre-generated counterbalance-plan selection and reserve-trial scheduling;
 - restart recovery that never resumes an interrupted stopwatch;
 - validated CSV trial-summary export;
+- OBS WebSocket v5 camera, microphone, track, storage, recording, and preview
+  checks when enabled;
+- one MKV per trial with a pseudonymous filename and SHA-256 artifact manifest;
+- pre-study, post-trial, post-condition, and final questionnaire completion
+  gates when enabled;
 - a React/Vite experimenter dashboard;
 - authenticated physical Quest enrollment into temporary `QUEST_A` and
   `QUEST_B` session slots;
@@ -31,7 +34,8 @@ Included:
 - simultaneous six-second calibration commands for both Quest slots;
 - strict derived-only six-tag calibration reports and a guarded start gate;
 - physical cross-Quest rig-transform compatibility checks;
-- calibrated, profile-driven TV and keyboard replacement masks;
+- profile-driven TV and keyboard replacement masks, currently using white
+  placeholders with new-room placement blocked until survey;
 - explicit DR `Prepare`, `Show`, `Hide`, `Reveal`, and state-report commands;
 - an environment-gated researcher preview that is unavailable during trials;
 - clear-passthrough fail-safe behavior and actual-versus-requested DR reports;
@@ -41,12 +45,12 @@ Included:
 - validated example records; and
 - unit and integration tests.
 
-Not included until later phases:
+Still pending physical and study approval gates:
 
-- final photographed wall/desk replacement textures and pilot tuning;
-- OBS control and real media readiness;
-- questionnaires; or
-- participant data collection.
+- new-room tag survey and TV/keyboard mask recalibration before enabling DR;
+- real OBS recording playback and left/right participant audio verification;
+- two-Quest pilot, performance and fault runs, ethics/storage decisions, and
+  release freeze.
 
 ## Requirements
 
@@ -88,15 +92,69 @@ Override deployment values without changing code:
 STUDY_DATA_ROOT=/approved/capture/path \
 COUNTERBALANCE_PLAN=/approved/master-plan.json \
 ADVERTISED_HOST=192.168.1.20 \
-APPROVED_QUEST_BUILD_ID=cdr-phase6-dev-1 \
+APPROVED_QUEST_BUILD_ID=cdr-newroom-white-dev-2 \
 DR_PREVIEW_ENABLED=true \
 npm start
 ```
 
+For the room pilot, configure OBS WebSocket 5.3+ and four form links. Keep the
+OBS password out of checked-in files. With two transmitters and one receiver,
+configure the receiver for separate left/right output, add it as one stereo
+OBS audio input, and route it to one stereo recording track. Match the source
+name, track, and participant channel assignments to the active hardware and
+OBS scene/profile:
+
+```sh
+STUDY_DATA_ROOT=/approved/encrypted-ssd/cdr \
+COUNTERBALANCE_PLAN=/approved/master-plan.json \
+OBS_ENABLED=true \
+OBS_URL=ws://127.0.0.1:4455 \
+OBS_PASSWORD='<local-password>' \
+OBS_CAMERA_SOURCE='Overhead Camera' \
+OBS_AUDIO_MODE=STEREO_RECEIVER \
+OBS_RECEIVER_SOURCE='Participant Receiver' \
+OBS_RECEIVER_TRACK=2 \
+OBS_PARTICIPANT_A_CHANNEL=LEFT \
+OBS_PARTICIPANT_B_CHANNEL=RIGHT \
+QUESTIONNAIRE_GATE_ENABLED=true \
+FORM_PRE_STUDY_URL='<approved-form-url>' \
+FORM_POST_TRIAL_URL='<approved-form-url>' \
+FORM_POST_CONDITION_URL='<approved-form-url>' \
+FORM_POST_SESSION_URL='<approved-form-url>' \
+npm start
+```
+
+Use an approved private way to supply secrets; the command above documents the
+variable names. `OBS_ENABLED` and `QUESTIONNAIRE_GATE_ENABLED` default to false
+for development. The dashboard labels that mode as a development
+configuration. It must not be used for participant capture. The controller
+stores these modes plus hashes of the OBS capture layout and configured form
+links when a session is created; set the approved configuration before creating
+it. A restart with a changed layout, mode, or form link is rejected. An OBS
+recording interrupted by a server restart must be
+stopped and saved through dashboard recovery before the trial is resolved. The
+controller requires MKV output. In `STEREO_RECEIVER` mode it checks both live
+input channels and the assigned OBS track, but a pilot recording must confirm
+that the saved MKV preserves left/right separation and that each transmitter
+belongs to the intended participant. The channel assignments above are defaults
+until this is checked. `OBS_AUDIO_MODE=SEPARATE_INPUTS` retains support for two
+independent OBS inputs using `OBS_MIC_A_SOURCE`, `OBS_MIC_B_SOURCE`,
+`OBS_MIC_A_TRACK`, and `OBS_MIC_B_TRACK`; those tracks must differ. The operator
+still needs to play a pilot file and confirm the actual video and participant
+audio before study collection. The dashboard records form
+completion confirmations, not Google Form answers. See
+[`Docs/Development/Phase7And8Implementation.md`](../Docs/Development/Phase7And8Implementation.md)
+for gates and fault coverage.
+
 `ADVERTISED_HOST` is the MacBook address reachable from the dedicated study
-Wi-Fi. The default approved Quest build is `cdr-phase6-dev-1`; use the exact ID
-compiled into the approved APK. `DR_PREVIEW_ENABLED=true` exposes the
-researcher-only placement panel during calibration; omit it for study runs.
+Wi-Fi. The default approved Quest build is `cdr-newroom-white-dev-2`; use the
+exact ID compiled into the development APK. `DR_PREVIEW_ENABLED=true` exposes
+the researcher-only placement panel during calibration. The photographed
+new-room setup has provisional white TV and keyboard masks for a one-Quest
+pilot; run fresh six-tag calibration before preparing either target.
+
+The offline, one-Quest new-room dry run is in
+[`Docs/Development/NewRoomTestReadiness.md`](../Docs/Development/NewRoomTestReadiness.md).
 
 After creating a session, issue a six-digit pairing code for one temporary slot
 from the dashboard and redeem it on that Quest. A code is slot-specific,
@@ -128,9 +186,13 @@ Each pseudonymous pair receives its own directory containing:
 
 - `session-config.json`;
 - `schedule.json`;
+- `workflow-policy.json` (the session's fixed OBS/form-gate modes);
 - `authoritative-events.jsonl`;
 - versioned snapshots plus `snapshots/latest.json`; and
 - `trial-summary.csv` after export validation.
+- `media/PAIR-001_<trial>.mkv` for OBS-enabled recorded trials; and
+- `artifact-manifest.json` with file sizes and SHA-256 checksums after export
+  validation, finalized after session closure.
 
 Existing pair directories are never overwritten. Raw Quest passthrough frames
 are not recorded, persisted, or transmitted.

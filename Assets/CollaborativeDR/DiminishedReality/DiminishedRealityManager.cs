@@ -88,6 +88,11 @@ namespace CollaborativeDR.DiminishedReality
                     $"{requiredProfileVersion}.";
                 return Fail(reason);
             }
+            if (profile.PlacementPendingNewRoomSurvey)
+            {
+                reason = $"{profile.TargetId} DR placement is pending the new-room survey.";
+                return Fail(reason);
+            }
             if (calibrationStatus != "PASS" && calibrationStatus != "OVERRIDDEN")
             {
                 reason = "A passing calibration or recorded override is required for DR.";
@@ -353,12 +358,12 @@ namespace CollaborativeDR.DiminishedReality
             propertyBlock.Clear();
             propertyBlock.SetTexture(
                 "_MainTex",
-                profile.ReplacementTexture != null
+                profile.UseReplacementTexture
                     ? profile.ReplacementTexture
                     : Texture2D.whiteTexture);
             propertyBlock.SetFloat(
                 "_UseTexture",
-                profile.ReplacementTexture != null ? 1f : 0f);
+                profile.UseReplacementTexture ? 1f : 0f);
             propertyBlock.SetColor("_Tint", profile.Tint);
             propertyBlock.SetFloat("_Brightness", profile.Brightness);
             propertyBlock.SetFloat("_Contrast", profile.Contrast);

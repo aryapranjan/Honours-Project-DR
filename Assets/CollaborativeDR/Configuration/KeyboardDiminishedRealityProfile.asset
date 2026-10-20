@@ -18,8 +18,10 @@ MonoBehaviour:
   localPositionMeters: {x: 0, y: 0, z: 0}
   localEulerDegrees: {x: -90, y: 0, z: 0}
   outerDimensionsMeters: {x: 0.55, y: 0.35}
+  placementPendingNewRoomSurvey: 0
   replacementMaterial: {fileID: 2100000, guid: 5f77f04132e314a1d811185c827723fe, type: 2}
-  replacementTexture: {fileID: 0}
+  replacementTexture: {fileID: 2800000, guid: f4e590ff514fa4a118514765d1498e32, type: 3}
+  useReplacementTexture: 0
   featherMeters: 0.005
   brightness: 1
   contrast: 1
