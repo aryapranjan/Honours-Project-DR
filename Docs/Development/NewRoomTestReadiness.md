@@ -1,9 +1,10 @@
-# New-room one-Quest white-mask pilot
+# Phase 8 final APK: one-Quest white-mask test
 
-Status, 2026-10-20: the photographed setup and confirmed measurements now have
+Status, 2026-10-21: the photographed setup and confirmed measurements now have
 provisional white-mask placements. Local software checks and an Android build
-are complete; no new-room Quest, camera, OBS, or two-headset pilot has run. This
-is a development pilot, not participant collection or a Phase 8 exit. See the
+are complete; no new-room Quest, camera, OBS, or two-headset pilot has run. The
+Phase 8 final name identifies the APK we will refine; it does not mark
+participant collection, a physical Phase 8 exit, or release freeze. See the
 [photo survey](NewRoomPhotoSurvey-20261020.md) for inputs and geometry.
 
 ## What is ready
@@ -13,16 +14,18 @@ is a development pilot, not participant collection or a Phase 8 exit. See the
   geometry, so TV/keyboard DR can prepare **after** a passing fresh calibration.
   A failed calibration still blocks them. No prior room world transform is used.
 - The Unity configure/build command no longer writes old mask geometry or
-  textures back into the profiles. The development build ID is
-  `cdr-newroom-white-dev-2`; its separate output path is
-  `Builds/Android/CollaborativeDR-NewRoom-WhitePilot.apk`.
-- The StudyController build and mock integration suite pass 45/45 tests.
+  textures back into the profiles. The approved build ID is
+  `cdr-phase8-final`; its stable output path is
+  `Builds/Android/CollaborativeDR-Phase8-Final.apk`. Rebuilds for room tuning
+  use this path. Install the same APK checksum on both headsets.
+- The StudyController build and mock integration suite pass 45/45 tests under
+  Node `24.18.0`.
   Unity compiled the changed scripts, the **Collaborative DR > Phase 6 >
-  Validate DR Masks** step passed within the build command, and the new APK
-  built on 2026-10-20. Its size is `101,650,237` bytes and SHA-256 is
-  `2c44d96da847052dff8c6f90d4dbd305ba4804660f7a80ea62ba2dfa79ad43a7`.
-  The APK metadata contains `cdr-newroom-white-dev-2` and the ARM64 AprilTag
-  library. The prior dev-1 APK and checksum remain historical.
+  Validate DR Masks** step passed within the build command. The Phase 8 final
+  APK built on 2026-10-21. Its size is `101,650,245` bytes and SHA-256 is
+  `f165d039b08a006ce2a4df3a7b2a175a35571ce3fd3c4bc03e5c4748acb61704`.
+  The APK metadata contains `cdr-phase8-final` and the ARM64 AprilTag library.
+  The former new-room pilot APKs were replaced by this stable artifact.
   Unity EditMode tests and on-head checks have not yet run.
 - The pinned tag family, IDs, and detection-corner side remain
   `tagStandard41h12`, `1–6`, and `0.0567 m`. The researcher confirmed the
@@ -32,12 +35,12 @@ is a development pilot, not participant collection or a Phase 8 exit. See the
 
 ## Manual test sequence on the lab Wi-Fi
 
-1. **Check the prepared APK.** Confirm the new APK path above exists and its
+1. **Check the prepared APK.** Confirm the APK path above exists and its
    SHA-256 matches the value in this document:
-   `shasum -a 256 Builds/Android/CollaborativeDR-NewRoom-WhitePilot.apk`.
+   `shasum -a 256 Builds/Android/CollaborativeDR-Phase8-Final.apk`.
    If Unity sources change afterward, rebuild in Unity `6000.0.61f1` through
-   **Collaborative DR > Phase 6 > Validate DR Masks**, then **Build Android
-   APK**. Use this dev-2 APK for the white-mask pilot.
+   **Collaborative DR > Phase 8 > Build Final APK**. Record the new checksum
+   and install that exact APK on each Quest used for the pilot.
 2. **Check the headset over USB.** Use Node `24.18.0` (`nvm use` in
    `StudyController/`) for the local commands. Put the Quest 3/3S in developer mode,
    connect it by cable, and accept its USB debugging prompt. Meta's CLI was
@@ -46,7 +49,7 @@ is a development pilot, not participant collection or a Phase 8 exit. See the
 
    ```sh
    npx --offline -y @meta-quest/hzdb device list
-   npx --offline -y @meta-quest/hzdb app install -r -g Builds/Android/CollaborativeDR-NewRoom-WhitePilot.apk
+   npx --offline -y @meta-quest/hzdb app install -r -g Builds/Android/CollaborativeDR-Phase8-Final.apk
    npx --offline -y @meta-quest/hzdb app launch com.samples.passthroughcamera --wait-for-idle --verify
    ```
 
@@ -61,9 +64,9 @@ is a development pilot, not participant collection or a Phase 8 exit. See the
    files and the example counterbalance plan:
 
    ```sh
-   STUDY_DATA_ROOT=/private/tmp/cdr-newroom-dryrun \
+   STUDY_DATA_ROOT=/private/tmp/cdr-phase8-dryrun \
    HOST=0.0.0.0 ADVERTISED_HOST='<current-MacBook-lab-IPv4>' PORT=4317 \
-   APPROVED_QUEST_BUILD_ID=cdr-newroom-white-dev-2 \
+   APPROVED_QUEST_BUILD_ID=cdr-phase8-final \
    OBS_ENABLED=false QUESTIONNAIRE_GATE_ENABLED=false DR_PREVIEW_ENABLED=true \
    npm start
    ```

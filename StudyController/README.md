@@ -92,7 +92,7 @@ Override deployment values without changing code:
 STUDY_DATA_ROOT=/approved/capture/path \
 COUNTERBALANCE_PLAN=/approved/master-plan.json \
 ADVERTISED_HOST=192.168.1.20 \
-APPROVED_QUEST_BUILD_ID=cdr-newroom-white-dev-2 \
+APPROVED_QUEST_BUILD_ID=cdr-phase8-final \
 DR_PREVIEW_ENABLED=true \
 npm start
 ```
@@ -147,8 +147,8 @@ completion confirmations, not Google Form answers. See
 for gates and fault coverage.
 
 `ADVERTISED_HOST` is the MacBook address reachable from the dedicated study
-Wi-Fi. The default approved Quest build is `cdr-newroom-white-dev-2`; use the
-exact ID compiled into the development APK. `DR_PREVIEW_ENABLED=true` exposes
+Wi-Fi. The default approved Quest build is `cdr-phase8-final`; use the
+exact ID compiled into the Phase 8 final APK. `DR_PREVIEW_ENABLED=true` exposes
 the researcher-only placement panel during calibration. The photographed
 new-room setup has provisional white TV and keyboard masks for a one-Quest
 pilot; run fresh six-tag calibration before preparing either target.

@@ -4,8 +4,9 @@ New-room update, 2026-10-20: the first white-placeholder build
 `cdr-newroom-white-dev-1` blocked DR pending survey. The researcher then
 provided new-room photos, confirmed unchanged target-to-tag relationships,
 `1.50 m` eye-to-wall distance and `0.29 m` TV protrusion. The profiles now hold
-provisional white-mask geometry for a one-Quest pilot under build
-`cdr-newroom-white-dev-2`. `Phase6Build` does not restore former-room geometry
+provisional white-mask geometry for a one-Quest pilot. The former pilot used
+`cdr-newroom-white-dev-2`; the current Phase 8 final APK uses
+`cdr-phase8-final`. `Phase6Build` does not restore former-room geometry
 or photo textures. See the [photo survey](NewRoomPhotoSurvey-20261020.md) and
 [new-room test readiness](NewRoomTestReadiness.md) for geometry and APK evidence.
 

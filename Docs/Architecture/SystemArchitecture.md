@@ -94,8 +94,9 @@ the local Node.js server.
    assigned to either participant without rebuilding the APK.
 
 Both clients must share the protocol major version and exactly match the
-approved build identifier. The current `cdr-newroom-white-dev-2` identifier is
-for development and the new-room white-mask pilot only.
+approved build identifier. The current `cdr-phase8-final` identifier names
+the Phase 8 APK used for continued room tuning. Physical validation and release
+freeze remain open.
 
 ### Physical study layer
 
@@ -272,9 +273,9 @@ the verified Phase 4 artifact. The Phase 5 calibration artifact used protocol
 protocol `1.3.0`, schema `1.4.0`, development build ID `cdr-phase6-dev-1`,
 and DR profile `PHASE6_TEST_V1`. The first new-room white-placeholder build
 used `cdr-newroom-white-dev-1` and blocked placement pending survey. The
-photographed-room white-mask pilot uses `cdr-newroom-white-dev-2` with the same
-protocol and profile. Its local geometry is provisional; the room transform
-comes from fresh calibration.
+photographed-room white-mask pilot used `cdr-newroom-white-dev-2`. The current
+Phase 8 final APK uses `cdr-phase8-final` with the same protocol and profile.
+Its local geometry is provisional; the room transform comes from fresh calibration.
 
 The Phase 4 readiness/calibration response was deliberately marked as a
 test-only override. Protocol `1.2.0` replaced it with strict six-tag calibration

@@ -163,7 +163,8 @@ defaults and unresolved deployment choices.
   `1.3.0`, APK build `cdr-phase6-dev-1`, and profile `PHASE6_TEST_V1`. The
   first new-room white-placeholder dry-run build was
   `cdr-newroom-white-dev-1`. The provisional photographed-room white-mask
-  pilot uses `cdr-newroom-white-dev-2` and requires fresh tag calibration.
+  pilot used `cdr-newroom-white-dev-2`. The current Phase 8 final APK uses
+  `cdr-phase8-final` and requires fresh tag calibration.
 
 ### Control architecture
 

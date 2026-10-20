@@ -25,7 +25,7 @@ namespace CollaborativeDR.Editor
         private const string KeyboardProfilePath =
             "Assets/CollaborativeDR/Configuration/KeyboardDiminishedRealityProfile.asset";
         private const string DefaultBuildPath =
-            "Builds/Android/CollaborativeDR-NewRoom-WhitePilot.apk";
+            "Builds/Android/CollaborativeDR-Phase8-Final.apk";
 
         [MenuItem("Collaborative DR/Phase 6/Configure DR Masks")]
         public static void ConfigureDiminishedRealityMasks()
@@ -103,7 +103,7 @@ namespace CollaborativeDR.Editor
             Debug.Log("Phase 6 diminished-reality mask validation passed.");
         }
 
-        [MenuItem("Collaborative DR/Phase 6/Build Android APK")]
+        [MenuItem("Collaborative DR/Phase 8/Build Final APK")]
         public static void BuildAndroidApk()
         {
             ConfigureDiminishedRealityMasks();
@@ -116,7 +116,8 @@ namespace CollaborativeDR.Editor
                     "Could not switch the active build target to Android.");
             }
 
-            string buildPath = GetCommandLineValue("-phase6BuildPath") ??
+            string buildPath = GetCommandLineValue("-phase8BuildPath") ??
+                               GetCommandLineValue("-phase6BuildPath") ??
                                DefaultBuildPath;
             string absoluteBuildPath = Path.GetFullPath(buildPath);
             Directory.CreateDirectory(
@@ -137,7 +138,7 @@ namespace CollaborativeDR.Editor
             }
 
             Debug.Log(
-                $"Phase 6 Android build succeeded: {absoluteBuildPath} " +
+                $"Phase 8 Android build succeeded: {absoluteBuildPath} " +
                 $"({report.summary.totalSize} bytes).");
         }
 
@@ -146,8 +147,8 @@ namespace CollaborativeDR.Editor
             Phase5Build.ValidateSixTagCalibration();
             Require(StudyProtocol.ProtocolVersion == "1.3.0",
                 "Phase 6 requires protocol 1.3.0.");
-            Require(StudyProtocol.AppBuildId == "cdr-newroom-white-dev-2",
-                "The surveyed new-room white pilot needs its distinct build ID.");
+            Require(StudyProtocol.AppBuildId == "cdr-phase8-final",
+                "The Phase 8 final APK needs its approved build ID.");
             Require(StudyProtocol.DrProfileVersion ==
                     DiminishedRealityTargetProfile.Phase6ProfileVersion,
                 "The protocol and Unity DR profile versions do not match.");

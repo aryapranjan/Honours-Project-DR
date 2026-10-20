@@ -1,6 +1,6 @@
 export const SCHEMA_VERSION = "1.4.0" as const;
 export const PROTOCOL_VERSION = "1.3.0" as const;
-export const DEFAULT_APPROVED_QUEST_BUILD_ID = "cdr-newroom-white-dev-2" as const;
+export const DEFAULT_APPROVED_QUEST_BUILD_ID = "cdr-phase8-final" as const;
 export const DR_PROFILE_VERSION = "PHASE6_TEST_V1" as const;
 export const APRILTAG_DETECTION_SIZE_METERS = 0.0567 as const;
 export const CALIBRATION_THRESHOLD_PROFILE = "PROVISIONAL_PHASE5_V2" as const;

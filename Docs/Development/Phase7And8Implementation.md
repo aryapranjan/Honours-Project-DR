@@ -3,9 +3,10 @@
 Status: room-independent implementation verified on 2026-10-06; physical exit
 gates and release freeze remain open.
 
-New-room dry-run update, 2026-10-20: the two DR profiles now use a white
-placeholder and reject DR preparation until newly surveyed placements are
-entered. The one-Quest, no-microphone test sequence is in
+New-room pilot update, 2026-10-21: the two DR profiles use provisional white
+placements derived from the supplied photos and measurements. Preparing DR
+still requires a passing fresh six-tag calibration. The one-Quest,
+no-microphone test sequence is in
 [NewRoomTestReadiness.md](NewRoomTestReadiness.md).
 
 ## Implemented controller path

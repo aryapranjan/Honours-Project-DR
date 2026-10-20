@@ -794,7 +794,7 @@ describe("Phase 4 networking foundation", () => {
           pairingCode: pairing.code,
           clientInstanceId: "physical-quest-install-0001",
           protocolVersion: PROTOCOL_VERSION,
-          appBuildId: "cdr-newroom-white-dev-2",
+          appBuildId: "cdr-phase8-final",
         },
       );
       expect(Object.keys(enrollment).sort()).toEqual([
@@ -811,7 +811,7 @@ describe("Phase 4 networking foundation", () => {
         deviceId: "QUEST_A",
         participantId: "P001-A",
         protocolVersion: "1.3.0",
-        approvedQuestBuildId: "cdr-newroom-white-dev-2",
+        approvedQuestBuildId: "cdr-phase8-final",
       });
       await expectQuestConnectionRejected(enrollment.websocketUrl);
 
@@ -832,7 +832,7 @@ describe("Phase 4 networking foundation", () => {
       );
       expect(state.serverConnection).toMatchObject({
         bindHost: "127.0.0.1",
-        approvedQuestBuildId: "cdr-newroom-white-dev-2",
+        approvedQuestBuildId: "cdr-phase8-final",
         protocolVersion: "1.3.0",
       });
       expect(state.serverConnection.advertisedWebSocketUrl).toBe(
@@ -988,7 +988,7 @@ describe("Phase 5 calibration reports", () => {
           pairingCode: pairing.code,
           clientInstanceId: `physical-${deviceId.toLowerCase()}-phase5`,
           protocolVersion: PROTOCOL_VERSION,
-          appBuildId: "cdr-newroom-white-dev-2",
+          appBuildId: "cdr-phase8-final",
         },
       );
       connections.push(

@@ -521,12 +521,21 @@ The TV white quad was recalculated on the new wall tag plane at
 `1.52 x 0.90 m`, local `(0.015, 0.020, 0) m`; the keyboard white quad remains
 `0.55 x 0.35 m` in its confirmed unchanged tag-relative desk placement. Both
 pending-survey flags were cleared for a **provisional one-Quest white-mask
-pilot**. The current dev-2 build ID is `cdr-newroom-white-dev-2` and the APK is
+pilot**. The former dev-2 build ID was `cdr-newroom-white-dev-2` and the APK was
 `Builds/Android/CollaborativeDR-NewRoom-WhitePilot.apk` (`101,650,237` bytes;
 SHA-256
 `2c44d96da847052dff8c6f90d4dbd305ba4804660f7a80ea62ba2dfa79ad43a7`).
 StudyController verification passed 45/45; Unity compiled/validated during
-the build. Unity EditMode tests and new-room Quest/OBS checks have not run.
+the build. On 2026-10-21 this pilot was replaced with the stable Phase 8 final
+build ID `cdr-phase8-final` at
+`Builds/Android/CollaborativeDR-Phase8-Final.apk` (`101,650,245` bytes;
+SHA-256 `f165d039b08a006ce2a4df3a7b2a175a35571ce3fd3c4bc03e5c4748acb61704`).
+The old NewRoom APK files were deleted after the replacement was verified.
+Future tuning rebuilds use the same Phase 8 path and need a newly recorded
+checksum and the same APK installed on each Quest. "Final" names the working
+artifact; it does not close physical gates or freeze the study release.
+StudyController verification passed 45/45 under Node `24.18.0` for this build.
+Unity EditMode tests and new-room Quest/OBS checks have not run.
 See `Docs/Development/NewRoomPhotoSurvey-20261020.md` for assumptions and
 `Docs/Development/NewRoomTestReadiness.md` for the offline test sequence.
 
